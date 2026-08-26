@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { BottomNav } from "@/components/BottomNav";
 import { TeamBadge } from "@/components/TeamBadge";
 import { AppHeader } from "@/components/AppHeader";
+import { ChangePasswordForm } from "@/components/ChangePasswordForm";
 import { redirect } from "next/navigation";
 
 // Rollen (admin/user) kan ændre sig i databasen - må ikke caches.
@@ -46,6 +47,8 @@ export default async function ProfilPage() {
           Gå til admin-panel
         </a>
       )}
+
+      <ChangePasswordForm />
 
       <form action={signOut} className="mx-5 mt-4">
         <button
