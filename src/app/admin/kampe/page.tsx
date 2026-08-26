@@ -9,17 +9,10 @@ import {
 } from "./actions";
 import { LogoMark } from "@/components/Logo";
 import type { Match, Round } from "@/lib/types";
+import { utcToDanishLocalInputValue } from "@/lib/time";
 
 // Admin-data (kampe/runder/resultater) må aldrig caches - skal altid være friske.
 export const dynamic = "force-dynamic";
-
-function toDatetimeLocal(iso: string) {
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
-    d.getHours()
-  )}:${pad(d.getMinutes())}`;
-}
 
 export default async function AdminKampePage({
   searchParams,
@@ -172,7 +165,7 @@ export default async function AdminKampePage({
                     <input
                       name="kickoff_at"
                       type="datetime-local"
-                      defaultValue={toDatetimeLocal(m.kickoff_at)}
+                      defaultValue={utcToDanishLocalInputValue(m.kickoff_at)}
                       className="h-9 rounded-lg border border-border px-2.5 text-sm"
                     />
                     <button className="h-9 rounded-lg border border-border px-3 text-xs font-bold">

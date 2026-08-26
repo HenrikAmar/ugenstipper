@@ -5,15 +5,25 @@ import { TeamBadge } from "@/components/TeamBadge";
 import { saveTip } from "@/app/tip/actions";
 import type { Match, Tip } from "@/lib/types";
 
+// Viser altid dansk tid (Europe/Copenhagen), uanset hvor i verden man selv sidder,
+// og uanset om siden først bliver tegnet op på serveren (som kører i UTC).
+const TIME_ZONE = "Europe/Copenhagen";
+
 function formatKickoff(iso: string) {
   const date = new Date(iso);
-  const weekday = new Intl.DateTimeFormat("da-DK", { weekday: "short" }).format(date);
-  const day = new Intl.DateTimeFormat("da-DK", { day: "numeric", month: "short" }).format(
-    date
-  );
+  const weekday = new Intl.DateTimeFormat("da-DK", {
+    weekday: "short",
+    timeZone: TIME_ZONE,
+  }).format(date);
+  const day = new Intl.DateTimeFormat("da-DK", {
+    day: "numeric",
+    month: "short",
+    timeZone: TIME_ZONE,
+  }).format(date);
   const time = new Intl.DateTimeFormat("da-DK", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: TIME_ZONE,
   }).format(date);
   return `${weekday}. ${day} · ${time}`;
 }

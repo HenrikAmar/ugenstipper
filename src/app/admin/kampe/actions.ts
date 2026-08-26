@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { calculatePoints } from "@/lib/points";
+import { danishLocalToUtcISOString } from "@/lib/time";
 
 async function requireAdmin() {
   const supabase = createClient();
@@ -52,7 +53,7 @@ export async function createMatch(roundId: string, formData: FormData) {
     round_id: roundId,
     home_team: homeTeam,
     away_team: awayTeam,
-    kickoff_at: new Date(kickoff).toISOString(),
+    kickoff_at: danishLocalToUtcISOString(kickoff),
   });
   revalidatePath("/admin/kampe");
 }
@@ -69,7 +70,7 @@ export async function updateMatch(matchId: string, formData: FormData) {
     .update({
       home_team: homeTeam,
       away_team: awayTeam,
-      kickoff_at: new Date(kickoff).toISOString(),
+      kickoff_at: danishLocalToUtcISOString(kickoff),
     })
     .eq("id", matchId);
   revalidatePath("/admin/kampe");
