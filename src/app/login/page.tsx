@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/Logo";
 
@@ -14,8 +14,17 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [ref, setRef] = useState<string | null>(null);
 
   const supabase = createClient();
+
+  // Læs evt. "?ref=..." og "?mode=signup" fra et invite-link.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const refParam = params.get("ref");
+    if (refParam) setRef(refParam);
+    if (params.get("mode") === "signup") setMode("signup");
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -31,7 +40,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: name || undefined } },
+        options: { data: { full_name: name || undefined, invited_by: ref || undefined } },
       });
       if (error) setError(error.message);
       else setInfo("Bruger oprettet! Tjek din e-mail for at bekræfte kontoen.");
@@ -50,7 +59,9 @@ export default function LoginPage() {
   async function handleGoogle() {
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback${ref ? `?ref=${ref}` : ""}`,
+      },
     });
   }
 

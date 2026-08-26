@@ -3,6 +3,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { TeamBadge } from "@/components/TeamBadge";
 import { AppHeader } from "@/components/AppHeader";
 import { ChangePasswordForm } from "@/components/ChangePasswordForm";
+import { InviteFriend } from "@/components/InviteFriend";
 import { redirect } from "next/navigation";
 
 // Rollen (admin/user) kan ændre sig i databasen - må ikke caches.
@@ -21,11 +22,18 @@ export default async function ProfilPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("display_name, role")
-    .eq("id", user?.id ?? "")
-    .maybeSingle();
+  const [{ data: profile }, { data: inviteRow }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("display_name, role")
+      .eq("id", user?.id ?? "")
+      .maybeSingle(),
+    supabase
+      .from("invite_leaderboard")
+      .select("qualified_invites")
+      .eq("user_id", user?.id ?? "")
+      .maybeSingle(),
+  ]);
 
   return (
     <div className="mx-auto min-h-screen max-w-[420px] bg-bg pb-24">
@@ -47,6 +55,8 @@ export default async function ProfilPage() {
           Gå til admin-panel
         </a>
       )}
+
+      {user && <InviteFriend qualifiedInvites={inviteRow?.qualified_invites ?? 0} />}
 
       <ChangePasswordForm />
 

@@ -13,6 +13,12 @@ interface TipRow {
   matches: { round_id: string } | null;
 }
 
+interface InviteRow {
+  user_id: string;
+  display_name: string;
+  qualified_invites: number;
+}
+
 export default async function StillingPage({
   searchParams,
 }: {
@@ -25,11 +31,20 @@ export default async function StillingPage({
 
   const visning = searchParams.visning === "runde" ? "runde" : "samlet";
 
-  const [{ data: profiles }, { data: currentRound }, { data: tips }] = await Promise.all([
-    supabase.from("profiles").select("id, display_name"),
-    supabase.from("rounds").select("id, number").eq("is_current", true).maybeSingle(),
-    supabase.from("tips").select("user_id, points, matches(round_id)"),
-  ]);
+  const [{ data: profiles }, { data: currentRound }, { data: tips }, { data: inviteTop }] =
+    await Promise.all([
+      supabase.from("profiles").select("id, display_name"),
+      supabase.from("rounds").select("id, number").eq("is_current", true).maybeSingle(),
+      supabase.from("tips").select("user_id, points, matches(round_id)"),
+      supabase
+        .from("invite_leaderboard")
+        .select("user_id, display_name, qualified_invites")
+        .gt("qualified_invites", 0)
+        .order("qualified_invites", { ascending: false })
+        .limit(5),
+    ]);
+
+  const inviteRanking = (inviteTop ?? []) as InviteRow[];
 
   const tipRows = (tips ?? []) as unknown as TipRow[];
 
@@ -108,6 +123,45 @@ export default async function StillingPage({
           </p>
         )}
       </div>
+
+      {inviteRanking.length > 0 && (
+        <div className="mt-6 px-5">
+          <h2 className="mb-2 text-[13px] font-bold text-text-muted">
+            Top 5 – Inviter en ven
+          </h2>
+          <div className="flex flex-col gap-2">
+            {inviteRanking.map((row, i) => {
+              const isMe = row.user_id === user?.id;
+              return (
+                <div
+                  key={row.user_id}
+                  className={`flex items-center gap-3 rounded-xl border p-3 ${
+                    isMe
+                      ? "border-[1.5px] border-accent-2 bg-accent-tint"
+                      : "border-border bg-surface"
+                  }`}
+                >
+                  <div className="w-5 text-center font-heading text-sm font-bold text-text-muted">
+                    {i + 1}
+                  </div>
+                  <TeamBadge team={row.display_name} size={34} />
+                  <div className="flex-1 text-sm font-bold">
+                    {row.display_name}
+                    {isMe && (
+                      <span className="ml-1.5 rounded-full bg-[#CFF0E1] px-1.5 py-0.5 text-[10px] font-bold text-accent">
+                        DIG
+                      </span>
+                    )}
+                  </div>
+                  <div className="w-10 text-right font-heading text-base font-extrabold">
+                    {row.qualified_invites}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <BottomNav />
     </div>
