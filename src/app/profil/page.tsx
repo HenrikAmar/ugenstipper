@@ -4,6 +4,7 @@ import { TeamBadge } from "@/components/TeamBadge";
 import { AppHeader } from "@/components/AppHeader";
 import { ChangePasswordForm } from "@/components/ChangePasswordForm";
 import { InviteFriend } from "@/components/InviteFriend";
+import { MiniligaCard } from "@/components/MiniligaCard";
 import { redirect } from "next/navigation";
 
 // Rollen (admin/user) kan ændre sig i databasen - må ikke caches.
@@ -22,7 +23,7 @@ export default async function ProfilPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: profile }, { data: inviteRow }] = await Promise.all([
+  const [{ data: profile }, { data: inviteRow }, { data: miniliga }] = await Promise.all([
     supabase
       .from("profiles")
       .select("display_name, role")
@@ -33,7 +34,21 @@ export default async function ProfilPage() {
       .select("qualified_invites")
       .eq("user_id", user?.id ?? "")
       .maybeSingle(),
+    supabase
+      .from("mini_league_members")
+      .select("mini_leagues(name, password_hash)")
+      .eq("user_id", user?.id ?? "")
+      .maybeSingle(),
   ]);
+
+  const miniligaRow =
+    (
+      miniliga as unknown as {
+        mini_leagues: { name: string; password_hash: string | null } | null;
+      } | null
+    )?.mini_leagues ?? null;
+  const miniligaName = miniligaRow?.name ?? null;
+  const miniligaHasPassword = miniligaRow?.password_hash != null;
 
   return (
     <div className="mx-auto min-h-screen max-w-[420px] bg-bg pb-24">
@@ -57,6 +72,8 @@ export default async function ProfilPage() {
       )}
 
       {user && <InviteFriend qualifiedInvites={inviteRow?.qualified_invites ?? 0} />}
+
+      {user && <MiniligaCard leagueName={miniligaName} hasPassword={miniligaHasPassword} />}
 
       <ChangePasswordForm />
 

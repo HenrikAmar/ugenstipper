@@ -39,6 +39,8 @@ export function InviteFriend({ qualifiedInvites }: { qualifiedInvites: number })
       <form onSubmit={handleInvite} className="flex flex-col gap-2">
         <input
           type="email"
+          name="ven-email"
+          autoComplete="off"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
