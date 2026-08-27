@@ -109,3 +109,14 @@ export async function deleteMatch(matchId: string) {
   await supabase.from("matches").delete().eq("id", matchId);
   revalidatePath("/admin/kampe");
 }
+
+// Sletter en hel runde. Kampene i runden - og alle tips på dem - bliver
+// automatisk slettet med (sat op i databasen med "on delete cascade").
+export async function deleteRound(roundId: string) {
+  const supabase = await requireAdmin();
+  await supabase.from("rounds").delete().eq("id", roundId);
+  revalidatePath("/admin/kampe");
+  revalidatePath("/tip");
+  revalidatePath("/stilling");
+  revalidatePath("/statistik");
+}
