@@ -43,7 +43,7 @@ export default function ReglerPage() {
           <p className="text-[13.5px] leading-relaxed text-text-muted">
             Ind imellem opretter vi en bonusrunde - fx når et dansk hold spiller i Europa. Det er
             ren lir: bonusrunde-point tæller ikke med i den rigtige stilling. De har deres egen
-            "Bonusrunde-stilling" nederst på Stilling-siden.
+            &bdquo;Bonusrunde-stilling&rdquo; nederst på Stilling-siden.
           </p>
         </section>
 
