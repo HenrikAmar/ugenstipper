@@ -75,6 +75,9 @@ export default function LoginPage() {
         <p className="mt-2.5 max-w-[260px] text-sm text-[#AAB4C6]">
           Ingen indsats, ingen odds. Bare skarpe tips og en fælles stilling.
         </p>
+        <p className="mt-2 max-w-[260px] text-[12.5px] text-[#AAB4C6]">
+          Vi er i testfase, så der er ingen præmier endnu - det er på vej!
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-1 flex-col gap-4 px-6 py-7">
