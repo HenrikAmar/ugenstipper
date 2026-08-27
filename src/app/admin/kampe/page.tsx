@@ -21,6 +21,10 @@ export default async function AdminKampePage({
 }) {
   const supabase = createClient();
 
+  const { count: userCount } = await supabase
+    .from("profiles")
+    .select("*", { count: "exact", head: true });
+
   const { data: rounds } = await supabase
     .from("rounds")
     .select("*")
@@ -54,9 +58,14 @@ export default async function AdminKampePage({
             Opret runder og kampe, og indtast officielle resultater.
           </p>
         </div>
-        <a href="/tip" className="text-sm font-semibold text-accent">
-          ← Tilbage til Ugenstipper
-        </a>
+        <div className="flex flex-col items-end gap-1.5">
+          <span className="rounded-full bg-accent-tint px-3 py-1 text-xs font-bold text-accent">
+            {userCount ?? 0} brugere
+          </span>
+          <a href="/tip" className="text-sm font-semibold text-accent">
+            ← Tilbage til Ugenstipper
+          </a>
+        </div>
       </div>
 
       <form action={createRound} className="card mt-6 flex flex-wrap items-end gap-3 rounded-xl p-4">
