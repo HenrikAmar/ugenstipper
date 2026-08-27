@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { TeamBadge } from "@/components/TeamBadge";
 import { BottomNav } from "@/components/BottomNav";
 import { AppHeader } from "@/components/AppHeader";
+import { MiniligaStanding } from "@/components/MiniligaStanding";
+import { buildStickyRanking, type RankRow, type StickyRow } from "@/lib/ranking";
 import Link from "next/link";
 
 // Stillingen ændrer sig når admin indtaster resultater - må ikke caches.
@@ -19,45 +21,14 @@ interface InviteRow {
   qualified_invites: number;
 }
 
-interface RankRow {
-  id: string;
-  display_name: string;
-  points: number;
-}
-
-interface StickyRow extends RankRow {
-  rank: number;
-}
-
-// Viser altid toppen af listen - og fastgør din egen række nederst med din rigtige
-// placering, hvis du ikke allerede er med i toppen. Er du allerede med i toppen,
-// vises listen bare helt normalt (uden en ekstra, klistret række).
-function buildStickyRanking(
-  sorted: RankRow[],
-  currentUserId: string | undefined,
-  windowSize: number
-): { rows: StickyRow[]; showGap: boolean } {
-  const withRank: StickyRow[] = sorted.map((row, i) => ({ ...row, rank: i + 1 }));
-  const myIndex = currentUserId ? withRank.findIndex((r) => r.id === currentUserId) : -1;
-
-  if (myIndex === -1 || myIndex < windowSize) {
-    return { rows: withRank.slice(0, windowSize), showGap: false };
-  }
-
-  const top = withRank.slice(0, windowSize - 1);
-  return { rows: [...top, withRank[myIndex]], showGap: true };
-}
-
 function RankingList({
   rows,
   showGap,
   userId,
-  valueLabel,
 }: {
   rows: StickyRow[];
   showGap: boolean;
   userId: string | undefined;
-  valueLabel: (row: StickyRow) => number;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -85,7 +56,7 @@ function RankingList({
                 )}
               </div>
               <div className="w-10 text-right font-heading text-base font-extrabold">
-                {valueLabel(row)}
+                {row.points}
               </div>
             </div>
           </div>
@@ -144,7 +115,7 @@ export default async function StillingPage({
     .maybeSingle();
 
   let miniligaName: string | null = null;
-  let miniligaDisplay: { rows: StickyRow[]; showGap: boolean } = { rows: [], showGap: false };
+  let miniligaRanking: RankRow[] = [];
 
   if (membership) {
     miniligaName =
@@ -157,8 +128,7 @@ export default async function StillingPage({
       .eq("league_id", membership.league_id);
 
     const memberIds = new Set((members ?? []).map((m) => m.user_id));
-    const miniligaRanking = ranking.filter((r) => memberIds.has(r.id));
-    miniligaDisplay = buildStickyRanking(miniligaRanking, user?.id, 3);
+    miniligaRanking = ranking.filter((r) => memberIds.has(r.id));
   }
 
   return (
@@ -192,12 +162,7 @@ export default async function StillingPage({
       </div>
 
       <div className="px-5">
-        <RankingList
-          rows={generalDisplay.rows}
-          showGap={generalDisplay.showGap}
-          userId={user?.id}
-          valueLabel={(row) => row.points}
-        />
+        <RankingList rows={generalDisplay.rows} showGap={generalDisplay.showGap} userId={user?.id} />
         {ranking.length === 0 && (
           <p className="py-8 text-center text-sm text-text-muted">
             Ingen point endnu denne sæson.
@@ -206,15 +171,7 @@ export default async function StillingPage({
       </div>
 
       {miniligaName && (
-        <div className="mt-6 px-5">
-          <h2 className="mb-2 text-[13px] font-bold text-text-muted">Miniliga – {miniligaName}</h2>
-          <RankingList
-            rows={miniligaDisplay.rows}
-            showGap={miniligaDisplay.showGap}
-            userId={user?.id}
-            valueLabel={(row) => row.points}
-          />
-        </div>
+        <MiniligaStanding leagueName={miniligaName} ranking={miniligaRanking} userId={user?.id} />
       )}
 
       {inviteRanking.length > 0 && (

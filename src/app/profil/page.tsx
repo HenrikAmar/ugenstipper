@@ -77,6 +77,13 @@ export default async function ProfilPage() {
 
       <ChangePasswordForm />
 
+      <a
+        href="/regler"
+        className="mx-5 mt-4 flex items-center justify-center rounded-[10px] border border-border bg-surface py-3 text-sm font-bold"
+      >
+        Regler
+      </a>
+
       <form action={signOut} className="mx-5 mt-4">
         <button
           type="submit"
