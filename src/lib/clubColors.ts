@@ -1,7 +1,7 @@
 // Vejledende klubfarver til de runde "badges" med holdinitialer.
 // Farverne er baseret på hvert holds velkendte trøje-/klubidentitet (offentligt
 // kendt, ikke officielle brand-hexkoder fra klubberne selv) - så de er til at
-//  kende, uden at vi bruger rigtige klublogoer (undgår varemærke-problemer).
+// kende, uden at vi bruger rigtige klublogoer (undgår varemærke-problemer).
 // Ret gerne til, hvis en farve ikke rammer helt rigtigt for dig.
 
 interface ClubStyle {
@@ -105,6 +105,23 @@ const CLUBS: ClubStyle[] = [
     aliases: ["hb koge", "hb køge", "koge", "køge"],
   },
 ];
+
+// De 12 hold i den aktuelle Superliga-sæson (2026/27) - bruges til dropdown i
+// admin-panelet, så man vælger holdet i stedet for at skrive det (undgår stavefejl).
+export const SUPERLIGA_TEAMS: string[] = [
+  "FC København",
+  "Brøndby IF",
+  "FC Midtjylland",
+  "FC Nordsjælland",
+  "OB",
+  "AGF",
+  "AC Horsens",
+  "Silkeborg IF",
+  "Randers FC",
+  "Viborg FF",
+  "Lyngby BK",
+  "SønderjyskE",
+].sort((a, b) => a.localeCompare(b, "da"));
 
 function normalize(name: string): string {
   return name
