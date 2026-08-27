@@ -1,7 +1,7 @@
 // Vejledende klubfarver til de runde "badges" med holdinitialer.
 // Farverne er baseret på hvert holds velkendte trøje-/klubidentitet (offentligt
 // kendt, ikke officielle brand-hexkoder fra klubberne selv) - så de er til at
-// kende, uden at vi bruger rigtige klublogoer (undgår varemærke-problemer).
+//  kende, uden at vi bruger rigtige klublogoer (undgår varemærke-problemer).
 // Ret gerne til, hvis en farve ikke rammer helt rigtigt for dig.
 
 interface ClubStyle {
