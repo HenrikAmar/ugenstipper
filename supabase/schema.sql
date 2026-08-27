@@ -52,6 +52,7 @@ create table if not exists public.rounds (
   number integer not null,
   is_current boolean not null default false,
   created_at timestamptz not null default now(),
+  reminder_sent_at timestamptz,
   unique (season, number)
 );
 
@@ -155,6 +156,18 @@ create policy "Man kan kun redigere egne tips inden for vindue og før kampstart
           and (select number from public.rounds where is_current limit 1) + 2
     )
   );
+
+-- ---------- GRUNDLÆGGENDE TABEL-ADGANG ----------
+-- RLS-reglerne ovenfor styrer HVILKE rækker en bruger må se/ændre, men
+-- Postgres kræver derudover en grundlæggende tilladelse til overhovedet at
+-- forsøge at læse/skrive i tabellen. Uden disse GRANT-linjer fejler alle
+-- forespørgsler fra appen med "permission denied for table ...", selvom
+-- RLS-reglerne er sat helt korrekt op.
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on public.profiles to authenticated;
+grant select, insert, update, delete on public.rounds to authenticated;
+grant select, insert, update, delete on public.matches to authenticated;
+grant select, insert, update, delete on public.tips to authenticated;
 
 -- ============================================================
 -- Point beregnes af applikationskoden, når admin indtaster det
