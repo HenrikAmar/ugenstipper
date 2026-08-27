@@ -31,6 +31,7 @@ function initialsFor(name: string) {
 
 export function TeamBadge({ team, size = 30 }: { team: string; size?: number }) {
   const club = getClubStyle(team);
+  const initials = club ? club.code : initialsFor(team);
 
   const style: React.CSSProperties = club
     ? {
@@ -50,7 +51,7 @@ export function TeamBadge({ team, size = 30 }: { team: string; size?: number }) 
 
   return (
     <div className="badge flex-none" style={style}>
-      {initialsFor(team)}
+      {initials}
     </div>
   );
 }
