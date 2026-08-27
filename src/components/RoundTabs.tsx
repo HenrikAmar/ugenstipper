@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { Round } from "@/lib/types";
+import { roundLabel } from "@/lib/rounds";
 
 export function RoundTabs({
   rounds,
@@ -26,7 +27,7 @@ export function RoundTabs({
                 : "border border-border bg-surface text-text-muted"
             }`}
           >
-            Runde {round.number}
+            {roundLabel(round)}
             {round.is_current ? " · Aktuel" : ""}
           </Link>
         );

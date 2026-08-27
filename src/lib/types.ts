@@ -7,10 +7,13 @@ export interface Profile {
   created_at: string;
 }
 
+export type RoundKind = "liga" | "bonus";
+
 export interface Round {
   id: string;
   season: string;
   number: number;
+  kind: RoundKind;
   is_current: boolean;
   created_at: string;
 }

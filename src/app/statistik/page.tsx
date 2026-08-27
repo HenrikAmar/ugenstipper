@@ -16,7 +16,7 @@ interface TipWithContext {
     kickoff_at: string;
     result_home: number | null;
     result_away: number | null;
-    rounds: { number: number } | null;
+    rounds: { number: number; kind: "liga" | "bonus" } | null;
   } | null;
 }
 
@@ -29,11 +29,14 @@ export default async function StatistikPage() {
   const { data: allTips } = await supabase
     .from("tips")
     .select(
-      "user_id, points, tip_home, tip_away, matches(home_team, away_team, kickoff_at, result_home, result_away, rounds(number))"
+      "user_id, points, tip_home, tip_away, matches(home_team, away_team, kickoff_at, result_home, result_away, rounds(number, kind))"
     );
 
   const tips = (allTips ?? []) as unknown as TipWithContext[];
-  const decided = tips.filter((t) => t.points !== null);
+  // Bonusrunder holdes uden for den almindelige statistik - deres rundenumre
+  // starter forfra (Bonus runde 1, 2, ...) og ville ellers blive blandet
+  // sammen med de almindelige runder med samme nummer.
+  const decided = tips.filter((t) => t.points !== null && t.matches?.rounds?.kind !== "bonus");
 
   const myDecided = decided
     .filter((t) => t.user_id === user?.id)

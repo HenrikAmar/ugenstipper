@@ -4,18 +4,18 @@ import { useTransition } from "react";
 
 export function DeleteRoundButton({
   roundId,
-  roundNumber,
+  roundLabel,
   deleteRound,
 }: {
   roundId: string;
-  roundNumber: number;
+  roundLabel: string;
   deleteRound: (roundId: string) => Promise<void>;
 }) {
   const [pending, startTransition] = useTransition();
 
   function handleClick() {
     const ok = confirm(
-      `Er du sikker på, at du vil slette Runde ${roundNumber}? Alle kampe og tips i runden bliver også slettet - det kan ikke fortrydes.`
+      `Er du sikker på, at du vil slette ${roundLabel}? Alle kampe og tips i runden bliver også slettet - det kan ikke fortrydes.`
     );
     if (!ok) return;
     startTransition(() => {
@@ -30,7 +30,7 @@ export function DeleteRoundButton({
       disabled={pending}
       className="rounded-lg border border-danger px-3 py-1.5 text-xs font-bold text-danger"
     >
-      {pending ? "Sletter …" : `Slet Runde ${roundNumber}`}
+      {pending ? "Sletter …" : `Slet ${roundLabel}`}
     </button>
   );
 }

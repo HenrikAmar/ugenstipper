@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 interface TipRow {
   user_id: string;
   points: number | null;
-  matches: { round_id: string } | null;
+  matches: { round_id: string; rounds: { kind: "liga" | "bonus" } | null } | null;
 }
 
 interface InviteRow {
@@ -82,7 +82,7 @@ export default async function StillingPage({
     await Promise.all([
       supabase.from("profiles").select("id, display_name"),
       supabase.from("rounds").select("id, number").eq("is_current", true).maybeSingle(),
-      supabase.from("tips").select("user_id, points, matches(round_id)"),
+      supabase.from("tips").select("user_id, points, matches(round_id, rounds(kind))"),
       supabase
         .from("invite_leaderboard")
         .select("user_id, display_name, qualified_invites")
@@ -95,9 +95,15 @@ export default async function StillingPage({
 
   const tipRows = (tips ?? []) as unknown as TipRow[];
 
+  // Bonusrunde-point tæller aldrig med i den rigtige stilling - de holdes 100% adskilt.
   const totals = new Map<string, number>();
+  const bonusTotals = new Map<string, number>();
   for (const tip of tipRows) {
     if (tip.points === null) continue;
+    if (tip.matches?.rounds?.kind === "bonus") {
+      bonusTotals.set(tip.user_id, (bonusTotals.get(tip.user_id) ?? 0) + tip.points);
+      continue;
+    }
     if (visning === "runde" && tip.matches?.round_id !== currentRound?.id) continue;
     totals.set(tip.user_id, (totals.get(tip.user_id) ?? 0) + tip.points);
   }
@@ -107,6 +113,14 @@ export default async function StillingPage({
     .sort((a, b) => b.points - a.points);
 
   const generalDisplay = buildStickyRanking(ranking, user?.id, 5);
+
+  // "All time" bonusrunde-stilling - kun brugere med mindst ét bonuspoint vises.
+  const bonusRanking: RankRow[] = (profiles ?? [])
+    .map((p) => ({ ...p, points: bonusTotals.get(p.id) ?? 0 }))
+    .filter((p) => p.points > 0)
+    .sort((a, b) => b.points - a.points);
+
+  const bonusDisplay = buildStickyRanking(bonusRanking, user?.id, 5);
 
   const { data: membership } = await supabase
     .from("mini_league_members")
@@ -169,6 +183,15 @@ export default async function StillingPage({
           </p>
         )}
       </div>
+
+      {bonusRanking.length > 0 && (
+        <div className="mt-6 px-5">
+          <h2 className="mb-2 text-[13px] font-bold text-text-muted">
+            Bonusrunde-stilling · all time
+          </h2>
+          <RankingList rows={bonusDisplay.rows} showGap={bonusDisplay.showGap} userId={user?.id} />
+        </div>
+      )}
 
       {miniligaName && (
         <MiniligaStanding leagueName={miniligaName} ranking={miniligaRanking} userId={user?.id} />

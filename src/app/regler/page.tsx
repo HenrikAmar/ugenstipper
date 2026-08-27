@@ -39,6 +39,15 @@ export default function ReglerPage() {
         </section>
 
         <section className="card rounded-xl p-4">
+          <h2 className="mb-2 text-[15px] font-bold">Bonusrunder</h2>
+          <p className="text-[13.5px] leading-relaxed text-text-muted">
+            Ind imellem opretter vi en bonusrunde - fx når et dansk hold spiller i Europa. Det er
+            ren lir: bonusrunde-point tæller ikke med i den rigtige stilling. De har deres egen
+            "Bonusrunde-stilling" nederst på Stilling-siden.
+          </p>
+        </section>
+
+        <section className="card rounded-xl p-4">
           <h2 className="mb-2 text-[15px] font-bold">Miniligaer</h2>
           <p className="text-[13.5px] leading-relaxed text-text-muted">
             Under din profil kan du oprette din egen miniliga med venner, familie eller kollegaer.

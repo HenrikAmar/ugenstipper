@@ -27,9 +27,10 @@ export async function createRound(formData: FormData) {
   const supabase = await requireAdmin();
   const season = String(formData.get("season") ?? "").trim();
   const number = parseInt(String(formData.get("number") ?? ""), 10);
+  const kind = formData.get("kind") === "bonus" ? "bonus" : "liga";
   if (!season || Number.isNaN(number)) return;
 
-  await supabase.from("rounds").insert({ season, number });
+  await supabase.from("rounds").insert({ season, number, kind });
   revalidatePath("/admin/kampe");
 }
 

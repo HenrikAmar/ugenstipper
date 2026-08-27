@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { getTippableRounds } from "@/lib/rounds";
+import { getTippableRounds, roundLabel } from "@/lib/rounds";
 import { RoundTabs } from "@/components/RoundTabs";
 import { MatchCard } from "@/components/MatchCard";
 import { BottomNav } from "@/components/BottomNav";
@@ -63,7 +63,7 @@ export default async function TipPage({
 
       <div className="flex items-baseline justify-between px-5 pb-3">
         <span className="text-xs font-semibold uppercase text-text-muted">
-          Runde {activeRound.number} · {activeRound.season}
+          {roundLabel(activeRound)} · {activeRound.season}
         </span>
         <span className="text-xs font-bold text-accent">
           {tippedCount} af {matchList.length} tippet

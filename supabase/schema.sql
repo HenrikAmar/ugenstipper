@@ -50,10 +50,14 @@ create table if not exists public.rounds (
   id uuid primary key default gen_random_uuid(),
   season text not null,
   number integer not null,
+  -- "liga" = almindelig Superliga-runde. "bonus" = ekstra bonusrunde (fx
+  -- danske hold i Europa) - tæller ikke med i den rigtige stilling, og
+  -- nummereres for sig selv (se supabase/bonusrunder.sql).
+  kind text not null default 'liga' check (kind in ('liga', 'bonus')),
   is_current boolean not null default false,
   created_at timestamptz not null default now(),
   reminder_sent_at timestamptz,
-  unique (season, number)
+  unique (season, kind, number)
 );
 
 -- Kun én runde kan være "indeværende" ad gangen
@@ -133,9 +137,12 @@ create policy "Man kan kun oprette egne tips inden for vindue og før kampstart"
       join public.rounds r on r.id = m.round_id
       where m.id = match_id
         and m.kickoff_at > now()
-        and r.number between
-          (select number from public.rounds where is_current limit 1)
-          and (select number from public.rounds where is_current limit 1) + 2
+        and (
+          r.kind = 'bonus'
+          or r.number between
+            (select number from public.rounds where is_current limit 1)
+            and (select number from public.rounds where is_current limit 1) + 2
+        )
     )
   );
 
@@ -151,9 +158,12 @@ create policy "Man kan kun redigere egne tips inden for vindue og før kampstart
       join public.rounds r on r.id = m.round_id
       where m.id = match_id
         and m.kickoff_at > now()
-        and r.number between
-          (select number from public.rounds where is_current limit 1)
-          and (select number from public.rounds where is_current limit 1) + 2
+        and (
+          r.kind = 'bonus'
+          or r.number between
+            (select number from public.rounds where is_current limit 1)
+            and (select number from public.rounds where is_current limit 1) + 2
+        )
     )
   );
 

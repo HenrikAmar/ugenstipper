@@ -13,6 +13,7 @@ import type { Match, Round } from "@/lib/types";
 import { utcToDanishLocalInputValue } from "@/lib/time";
 import { SUPERLIGA_TEAMS } from "@/lib/clubColors";
 import { DeleteRoundButton } from "@/components/DeleteRoundButton";
+import { roundLabel } from "@/lib/rounds";
 
 // Til redigeringsformularen: sørger for at holdets nuværende navn altid er en
 // mulighed i dropdown'en, selv hvis det (fra en gammel kamp) ikke matcher
@@ -40,7 +41,12 @@ export default async function AdminKampePage({
     .select("*")
     .order("number", { ascending: true });
 
-  const roundList: Round[] = rounds ?? [];
+  // Vis almindelige runder for sig og bonusrunder for sig (i stedet for
+  // blandet sammen, bare fordi de tilfældigvis har samme nummer).
+  const roundList: Round[] = (rounds ?? []).sort((a, b) => {
+    if (a.kind !== b.kind) return a.kind === "liga" ? -1 : 1;
+    return a.number - b.number;
+  });
   const activeRound =
     roundList.find((r) => r.id === searchParams.runde) ??
     roundList.find((r) => r.is_current) ??
@@ -97,6 +103,19 @@ export default async function AdminKampePage({
             className="h-10 w-28 rounded-lg border border-border px-3 text-sm"
           />
         </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-semibold text-text-muted">Type</label>
+          <div className="flex h-10 items-center gap-3 text-sm">
+            <label className="flex items-center gap-1.5">
+              <input type="radio" name="kind" value="liga" defaultChecked />
+              Almindelig runde
+            </label>
+            <label className="flex items-center gap-1.5">
+              <input type="radio" name="kind" value="bonus" />
+              Bonusrunde
+            </label>
+          </div>
+        </div>
         <button className="h-10 rounded-lg bg-navy px-4 text-sm font-bold text-white">
           + Ny runde
         </button>
@@ -113,7 +132,7 @@ export default async function AdminKampePage({
                 : "border border-border text-text-muted"
             }`}
           >
-            Runde {r.number}
+            {roundLabel(r)}
             {r.is_current ? " · Aktuel" : ""}
           </a>
         ))}
@@ -121,16 +140,16 @@ export default async function AdminKampePage({
 
       {activeRound && (
         <div className="mt-3 flex flex-wrap gap-2">
-          {!activeRound.is_current && (
+          {activeRound.kind === "liga" && !activeRound.is_current && (
             <form action={setCurrentRound.bind(null, activeRound.id)}>
               <button className="rounded-lg border border-accent-2 px-3 py-1.5 text-xs font-bold text-accent">
-                Sæt Runde {activeRound.number} som indeværende runde
+                Sæt {roundLabel(activeRound)} som indeværende runde
               </button>
             </form>
           )}
           <DeleteRoundButton
             roundId={activeRound.id}
-            roundNumber={activeRound.number}
+            roundLabel={roundLabel(activeRound)}
             deleteRound={deleteRound}
           />
         </div>
@@ -148,42 +167,67 @@ export default async function AdminKampePage({
             action={createMatch.bind(null, activeRound.id)}
             className="card mt-6 flex flex-wrap items-end gap-3 rounded-xl p-4"
           >
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-text-muted">Hjemmehold</label>
-              <select
-                name="home_team"
-                required
-                defaultValue=""
-                className="h-10 w-44 rounded-lg border border-border px-3 text-sm"
-              >
-                <option value="" disabled>
-                  Vælg hold
-                </option>
-                {SUPERLIGA_TEAMS.map((team) => (
-                  <option key={team} value={team}>
-                    {team}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-text-muted">Udehold</label>
-              <select
-                name="away_team"
-                required
-                defaultValue=""
-                className="h-10 w-44 rounded-lg border border-border px-3 text-sm"
-              >
-                <option value="" disabled>
-                  Vælg hold
-                </option>
-                {SUPERLIGA_TEAMS.map((team) => (
-                  <option key={team} value={team}>
-                    {team}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {activeRound.kind === "liga" ? (
+              <>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-text-muted">Hjemmehold</label>
+                  <select
+                    name="home_team"
+                    required
+                    defaultValue=""
+                    className="h-10 w-44 rounded-lg border border-border px-3 text-sm"
+                  >
+                    <option value="" disabled>
+                      Vælg hold
+                    </option>
+                    {SUPERLIGA_TEAMS.map((team) => (
+                      <option key={team} value={team}>
+                        {team}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-text-muted">Udehold</label>
+                  <select
+                    name="away_team"
+                    required
+                    defaultValue=""
+                    className="h-10 w-44 rounded-lg border border-border px-3 text-sm"
+                  >
+                    <option value="" disabled>
+                      Vælg hold
+                    </option>
+                    {SUPERLIGA_TEAMS.map((team) => (
+                      <option key={team} value={team}>
+                        {team}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-text-muted">Hjemmehold</label>
+                  <input
+                    name="home_team"
+                    required
+                    placeholder="fx FC København"
+                    className="h-10 w-44 rounded-lg border border-border px-3 text-sm"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-text-muted">Udehold</label>
+                  <input
+                    name="away_team"
+                    required
+                    placeholder="fx Real Madrid"
+                    className="h-10 w-44 rounded-lg border border-border px-3 text-sm"
+                  />
+                </div>
+              </>
+            )}
             <div className="flex flex-col gap-1">
               <label className="text-xs font-semibold text-text-muted">Kampstart</label>
               <input
@@ -207,29 +251,47 @@ export default async function AdminKampePage({
                     action={updateMatch.bind(null, m.id)}
                     className="flex flex-wrap items-end gap-3"
                   >
-                    <select
-                      name="home_team"
-                      defaultValue={m.home_team}
-                      className="h-9 w-40 rounded-lg border border-border px-2.5 text-sm"
-                    >
-                      {teamOptions(m.home_team).map((team) => (
-                        <option key={team} value={team}>
-                          {team}
-                        </option>
-                      ))}
-                    </select>
-                    <span className="pb-2 text-text-muted">–</span>
-                    <select
-                      name="away_team"
-                      defaultValue={m.away_team}
-                      className="h-9 w-40 rounded-lg border border-border px-2.5 text-sm"
-                    >
-                      {teamOptions(m.away_team).map((team) => (
-                        <option key={team} value={team}>
-                          {team}
-                        </option>
-                      ))}
-                    </select>
+                    {activeRound.kind === "liga" ? (
+                      <>
+                        <select
+                          name="home_team"
+                          defaultValue={m.home_team}
+                          className="h-9 w-40 rounded-lg border border-border px-2.5 text-sm"
+                        >
+                          {teamOptions(m.home_team).map((team) => (
+                            <option key={team} value={team}>
+                              {team}
+                            </option>
+                          ))}
+                        </select>
+                        <span className="pb-2 text-text-muted">–</span>
+                        <select
+                          name="away_team"
+                          defaultValue={m.away_team}
+                          className="h-9 w-40 rounded-lg border border-border px-2.5 text-sm"
+                        >
+                          {teamOptions(m.away_team).map((team) => (
+                            <option key={team} value={team}>
+                              {team}
+                            </option>
+                          ))}
+                        </select>
+                      </>
+                    ) : (
+                      <>
+                        <input
+                          name="home_team"
+                          defaultValue={m.home_team}
+                          className="h-9 w-40 rounded-lg border border-border px-2.5 text-sm"
+                        />
+                        <span className="pb-2 text-text-muted">–</span>
+                        <input
+                          name="away_team"
+                          defaultValue={m.away_team}
+                          className="h-9 w-40 rounded-lg border border-border px-2.5 text-sm"
+                        />
+                      </>
+                    )}
                     <input
                       name="kickoff_at"
                       type="datetime-local"
