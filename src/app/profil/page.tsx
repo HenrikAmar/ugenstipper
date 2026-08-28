@@ -7,7 +7,7 @@ import { InviteFriend } from "@/components/InviteFriend";
 import { MiniligaCard } from "@/components/MiniligaCard";
 import { redirect } from "next/navigation";
 
-// Rollen (admin/user) kan ændre sig i databasen - må ikke caches.
+// Rollen (admin/user) kan aendre sig i databasen - maa ikke caches.
 export const dynamic = "force-dynamic";
 
 async function signOut() {
@@ -63,11 +63,8 @@ export default async function ProfilPage() {
       </div>
 
       {profile?.role === "admin" && (
-        
-          href="/admin"
-          className="mx-5 mt-4 flex items-center justify-center rounded-[10px] border border-border bg-surface py-3 text-sm font-bold"
-        >
-          Gå til admin-panel
+        <a href="/admin" className="mx-5 mt-4 flex items-center justify-center rounded-[10px] border border-border bg-surface py-3 text-sm font-bold">
+          Gaa til admin-panel
         </a>
       )}
 
@@ -77,17 +74,11 @@ export default async function ProfilPage() {
 
       <ChangePasswordForm />
 
-      
-        href="/regler"
-        className="mx-5 mt-4 flex items-center justify-center rounded-[10px] border border-border bg-surface py-3 text-sm font-bold"
-      >
+      <a href="/regler" className="mx-5 mt-4 flex items-center justify-center rounded-[10px] border border-border bg-surface py-3 text-sm font-bold">
         Regler
       </a>
 
-      
-        href="/kontakt"
-        className="mx-5 mt-4 flex items-center justify-center rounded-[10px] border border-border bg-surface py-3 text-sm font-bold"
-      >
+      <a href="/kontakt" className="mx-5 mt-4 flex items-center justify-center rounded-[10px] border border-border bg-surface py-3 text-sm font-bold">
         Kontakt os
       </a>
 
