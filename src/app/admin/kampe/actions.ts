@@ -102,4 +102,47 @@ export async function submitResult(matchId: string, formData: FormData) {
   }
 
   // Beregn point for alle tips på denne kamp med det samme.
-  const { data: tips, error: tipsFetchError } =
+  const { data: tips, error: tipsFetchError } = await admin
+    .from("tips")
+    .select("id, tip_home, tip_away")
+    .eq("match_id", matchId);
+
+  if (tipsFetchError) {
+    console.error("submitResult: kunne ikke hente tips til point-beregning", tipsFetchError);
+    throw new Error(`Kunne ikke hente tips: ${tipsFetchError.message}`);
+  }
+
+  for (const tip of tips ?? []) {
+    const points = calculatePoints(tip.tip_home, tip.tip_away, resultHome, resultAway);
+    const { error: tipUpdateError } = await admin
+      .from("tips")
+      .update({ points })
+      .eq("id", tip.id);
+    if (tipUpdateError) {
+      console.error("submitResult: kunne ikke opdatere point for tip", tip.id, tipUpdateError);
+      throw new Error(`Kunne ikke opdatere point: ${tipUpdateError.message}`);
+    }
+  }
+
+  revalidatePath("/admin/kampe");
+  revalidatePath("/tip");
+  revalidatePath("/stilling");
+  revalidatePath("/statistik");
+}
+
+export async function deleteMatch(matchId: string) {
+  const supabase = await requireAdmin();
+  await supabase.from("matches").delete().eq("id", matchId);
+  revalidatePath("/admin/kampe");
+}
+
+// Sletter en hel runde. Kampene i runden - og alle tips på dem - bliver
+// automatisk slettet med (sat op i databasen med "on delete cascade").
+export async function deleteRound(roundId: string) {
+  const supabase = await requireAdmin();
+  await supabase.from("rounds").delete().eq("id", roundId);
+  revalidatePath("/admin/kampe");
+  revalidatePath("/tip");
+  revalidatePath("/stilling");
+  revalidatePath("/statistik");
+}
