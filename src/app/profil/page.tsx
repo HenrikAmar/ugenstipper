@@ -7,7 +7,7 @@ import { InviteFriend } from "@/components/InviteFriend";
 import { MiniligaCard } from "@/components/MiniligaCard";
 import { redirect } from "next/navigation";
 
-// Rollen (admin/user) kan aendre sig i databasen - maa ikke caches.
+// Rollen (admin/user) kan ændre sig i databasen - må ikke caches.
 export const dynamic = "force-dynamic";
 
 async function signOut() {
@@ -64,7 +64,7 @@ export default async function ProfilPage() {
 
       {profile?.role === "admin" && (
         <a href="/admin" className="mx-5 mt-4 flex items-center justify-center rounded-[10px] border border-border bg-surface py-3 text-sm font-bold">
-          Gaa til admin-panel
+          Gå til admin-panel
         </a>
       )}
 
