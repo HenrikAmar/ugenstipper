@@ -3,22 +3,46 @@ import { TeamBadge } from "@/components/TeamBadge";
 import { BottomNav } from "@/components/BottomNav";
 import { AppHeader } from "@/components/AppHeader";
 import { MiniligaStanding } from "@/components/MiniligaStanding";
+import { SeasonSelect } from "@/components/SeasonSelect";
 import { buildStickyRanking, type RankRow, type StickyRow } from "@/lib/ranking";
 import Link from "next/link";
 
 // Stillingen ændrer sig når admin indtaster resultater - må ikke caches.
 export const dynamic = "force-dynamic";
 
+interface RoundLite {
+  id: string;
+  number: number;
+  season: string;
+  kind: "liga" | "bonus";
+  is_current: boolean;
+  created_at: string;
+}
+
 interface TipRow {
   user_id: string;
   points: number | null;
-  matches: { round_id: string; rounds: { kind: "liga" | "bonus" } | null } | null;
+  matches: { round_id: string; rounds: { kind: "liga" | "bonus"; season: string } | null } | null;
 }
 
 interface InviteRow {
   user_id: string;
   display_name: string;
   qualified_invites: number;
+}
+
+// Sorterer sæsoner nyeste først, ud fra hvornår deres seneste runde blev
+// oprettet - mere robust end alfabetisk, når sæsonnavne som "Testsæson 1" og
+// "2026/27" blandes.
+function seasonsNewestFirst(rounds: RoundLite[]): string[] {
+  const latestBySeason = new Map<string, string>();
+  for (const r of rounds) {
+    const prev = latestBySeason.get(r.season);
+    if (!prev || r.created_at > prev) latestBySeason.set(r.season, r.created_at);
+  }
+  return Array.from(latestBySeason.entries())
+    .sort((a, b) => (a[1] < b[1] ? 1 : -1))
+    .map(([season]) => season);
 }
 
 function RankingList({
@@ -69,7 +93,7 @@ function RankingList({
 export default async function StillingPage({
   searchParams,
 }: {
-  searchParams: { visning?: string };
+  searchParams: { visning?: string; saeson?: string; bonusSaeson?: string };
 }) {
   const supabase = createClient();
   const {
@@ -78,11 +102,11 @@ export default async function StillingPage({
 
   const visning = searchParams.visning === "runde" ? "runde" : "samlet";
 
-  const [{ data: profiles }, { data: currentRound }, { data: tips }, { data: inviteTop }] =
+  const [{ data: profiles }, { data: roundsData }, { data: tips }, { data: inviteTop }] =
     await Promise.all([
       supabase.from("profiles").select("id, display_name"),
-      supabase.from("rounds").select("id, number").eq("is_current", true).maybeSingle(),
-      supabase.from("tips").select("user_id, points, matches(round_id, rounds(kind))"),
+      supabase.from("rounds").select("id, number, season, kind, is_current, created_at"),
+      supabase.from("tips").select("user_id, points, matches(round_id, rounds(kind, season))"),
       supabase
         .from("invite_leaderboard")
         .select("user_id, display_name, qualified_invites")
@@ -92,19 +116,43 @@ export default async function StillingPage({
     ]);
 
   const inviteRanking = (inviteTop ?? []) as InviteRow[];
-
   const tipRows = (tips ?? []) as unknown as TipRow[];
+  const roundsList = (roundsData ?? []) as RoundLite[];
 
-  // Bonusrunde-point tæller aldrig med i den rigtige stilling - de holdes 100% adskilt.
+  const ligaRounds = roundsList.filter((r) => r.kind === "liga");
+  const bonusRounds = roundsList.filter((r) => r.kind === "bonus");
+
+  const ligaSeasons = seasonsNewestFirst(ligaRounds);
+  const bonusSeasons = seasonsNewestFirst(bonusRounds);
+
+  const currentRound = ligaRounds.find((r) => r.is_current) ?? null;
+  const activeLigaSeason = currentRound?.season ?? ligaSeasons[0] ?? null;
+  const defaultBonusSeason = bonusSeasons[0] ?? null;
+
+  const selectedLigaSeason = searchParams.saeson ?? activeLigaSeason;
+  const selectedBonusSeason = searchParams.bonusSaeson ?? defaultBonusSeason;
+  const isViewingActiveSeason = selectedLigaSeason === activeLigaSeason;
+
+  // Point tælles adskilt: den rigtige stilling (liga, pr. valgt sæson) og
+  // bonusrunde-stillingen (pr. valgt bonus-sæson) - de blandes aldrig sammen.
   const totals = new Map<string, number>();
   const bonusTotals = new Map<string, number>();
   for (const tip of tipRows) {
     if (tip.points === null) continue;
-    if (tip.matches?.rounds?.kind === "bonus") {
-      bonusTotals.set(tip.user_id, (bonusTotals.get(tip.user_id) ?? 0) + tip.points);
+    const roundInfo = tip.matches?.rounds;
+    if (!roundInfo) continue;
+
+    if (roundInfo.kind === "bonus") {
+      if (selectedBonusSeason !== null && roundInfo.season === selectedBonusSeason) {
+        bonusTotals.set(tip.user_id, (bonusTotals.get(tip.user_id) ?? 0) + tip.points);
+      }
       continue;
     }
-    if (visning === "runde" && tip.matches?.round_id !== currentRound?.id) continue;
+
+    if (roundInfo.season !== selectedLigaSeason) continue;
+    if (visning === "runde" && isViewingActiveSeason && tip.matches?.round_id !== currentRound?.id) {
+      continue;
+    }
     totals.set(tip.user_id, (totals.get(tip.user_id) ?? 0) + tip.points);
   }
 
@@ -114,7 +162,8 @@ export default async function StillingPage({
 
   const generalDisplay = buildStickyRanking(ranking, user?.id, 5);
 
-  // "All time" bonusrunde-stilling - kun brugere med mindst ét bonuspoint vises.
+  // "All time" er erstattet af pr. bonus-sæson - kun brugere med mindst ét
+  // bonuspoint i den valgte bonus-sæson vises.
   const bonusRanking: RankRow[] = (profiles ?? [])
     .map((p) => ({ ...p, points: bonusTotals.get(p.id) ?? 0 }))
     .filter((p) => p.points > 0)
@@ -145,37 +194,59 @@ export default async function StillingPage({
     miniligaRanking = ranking.filter((r) => memberIds.has(r.id));
   }
 
+  const currentParams = {
+    visning: searchParams.visning,
+    saeson: searchParams.saeson,
+    bonusSaeson: searchParams.bonusSaeson,
+  };
+
   return (
     <div className="mx-auto min-h-screen max-w-[420px] bg-bg pb-24">
       <AppHeader
         title="Stilling"
         subtitle={
           <p className="mt-0.5 text-[13px] text-text-muted">
-            {currentRound ? `Efter runde ${currentRound.number}` : "Ingen aktiv runde"}
+            {isViewingActiveSeason
+              ? currentRound
+                ? `Efter runde ${currentRound.number}`
+                : "Ingen aktiv runde"
+              : `Sæson ${selectedLigaSeason}`}
           </p>
         }
       />
 
-      <div className="flex gap-2 px-5 py-3.5">
-        <Link
-          href="/stilling?visning=samlet"
-          className={`pill ${
-            visning === "samlet" ? "bg-navy text-white" : "border border-border text-text-muted"
-          }`}
-        >
-          Samlet
-        </Link>
-        <Link
-          href="/stilling?visning=runde"
-          className={`pill ${
-            visning === "runde" ? "bg-navy text-white" : "border border-border text-text-muted"
-          }`}
-        >
-          Denne runde
-        </Link>
-      </div>
+      {ligaSeasons.length > 1 && (
+        <div className="px-5 pt-3">
+          <SeasonSelect
+            basePath="/stilling"
+            paramName="saeson"
+            value={selectedLigaSeason ?? ""}
+            options={ligaSeasons}
+            currentParams={currentParams}
+          />
+        </div>
+      )}
 
-      <div className="px-5">
+      {isViewingActiveSeason && (
+        <div className="flex gap-2 px-5 py-3.5">
+          <Link href="/stilling?visning=samlet"
+            className={`pill ${
+              visning === "samlet" ? "bg-navy text-white" : "border border-border text-text-muted"
+            }`}
+          >
+            Samlet
+          </Link>
+          <Link href="/stilling?visning=runde"
+            className={`pill ${
+              visning === "runde" ? "bg-navy text-white" : "border border-border text-text-muted"
+            }`}
+          >
+            Denne runde
+          </Link>
+        </div>
+      )}
+
+      <div className={isViewingActiveSeason ? "px-5" : "px-5 pt-4"}>
         <RankingList rows={generalDisplay.rows} showGap={generalDisplay.showGap} userId={user?.id} />
         {ranking.length === 0 && (
           <p className="py-8 text-center text-sm text-text-muted">
@@ -186,9 +257,18 @@ export default async function StillingPage({
 
       {bonusRanking.length > 0 && (
         <div className="mt-6 px-5">
-          <h2 className="mb-2 text-[13px] font-bold text-text-muted">
-            Bonusrunde-stilling · all time
-          </h2>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-[13px] font-bold text-text-muted">Bonusrunde-stilling</h2>
+            {bonusSeasons.length > 1 && (
+              <SeasonSelect
+                basePath="/stilling"
+                paramName="bonusSaeson"
+                value={selectedBonusSeason ?? ""}
+                options={bonusSeasons}
+                currentParams={currentParams}
+              />
+            )}
+          </div>
           <RankingList rows={bonusDisplay.rows} showGap={bonusDisplay.showGap} userId={user?.id} />
         </div>
       )}

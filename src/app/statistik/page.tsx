@@ -16,7 +16,7 @@ interface TipWithContext {
     kickoff_at: string;
     result_home: number | null;
     result_away: number | null;
-    rounds: { number: number; kind: "liga" | "bonus" } | null;
+    rounds: { number: number; kind: "liga" | "bonus"; season: string } | null;
   } | null;
 }
 
@@ -26,17 +26,28 @@ export default async function StatistikPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: allTips } = await supabase
-    .from("tips")
-    .select(
-      "user_id, points, tip_home, tip_away, matches(home_team, away_team, kickoff_at, result_home, result_away, rounds(number, kind))"
-    );
+  const [{ data: allTips }, { data: currentRound }] = await Promise.all([
+    supabase
+      .from("tips")
+      .select(
+        "user_id, points, tip_home, tip_away, matches(home_team, away_team, kickoff_at, result_home, result_away, rounds(number, kind, season))"
+      ),
+    supabase.from("rounds").select("season").eq("kind", "liga").eq("is_current", true).maybeSingle(),
+  ]);
 
   const tips = (allTips ?? []) as unknown as TipWithContext[];
+  const activeSeason = currentRound?.season ?? null;
   // Bonusrunder holdes uden for den almindelige statistik - deres rundenumre
   // starter forfra (Bonus runde 1, 2, ...) og ville ellers blive blandet
-  // sammen med de almindelige runder med samme nummer.
-  const decided = tips.filter((t) => t.points !== null && t.matches?.rounds?.kind !== "bonus");
+  // sammen med de almindelige runder med samme nummer. Samme grund til at vi
+  // også låser til den aktive sæson - ellers ville "Runde 1" fra en tidligere
+  // sæson blive blandet sammen med "Runde 1" i den nye.
+  const decided = tips.filter(
+    (t) =>
+      t.points !== null &&
+      t.matches?.rounds?.kind !== "bonus" &&
+      (activeSeason === null || t.matches?.rounds?.season === activeSeason)
+  );
 
   const myDecided = decided
     .filter((t) => t.user_id === user?.id)

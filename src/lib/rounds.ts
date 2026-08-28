@@ -33,6 +33,7 @@ export async function getTippableRounds(
     .from("rounds")
     .select("*")
     .eq("kind", "liga")
+.eq("season", current.season)
     .gte("number", current.number)
     .lte("number", current.number + 2)
     .order("number", { ascending: true });
