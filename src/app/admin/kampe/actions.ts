@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { calculatePoints } from "@/lib/points";
 import { danishLocalToUtcISOString } from "@/lib/time";
 
@@ -78,25 +79,32 @@ export async function updateMatch(matchId: string, formData: FormData) {
 }
 
 export async function submitResult(matchId: string, formData: FormData) {
-  const supabase = await requireAdmin();
+  // Tjekker stadig at det rent faktisk er en admin, der er logget ind.
+  await requireAdmin();
   const resultHome = parseInt(String(formData.get("result_home") ?? ""), 10);
   const resultAway = parseInt(String(formData.get("result_away") ?? ""), 10);
   if (Number.isNaN(resultHome) || Number.isNaN(resultAway)) return;
 
-  await supabase
+  // Brug admin-klienten (uden RLS) her - vi skal skrive point til ALLE
+  // brugeres tips, ikke kun adminens egne, og efter kampstart. Tips' egne
+  // RLS-regler (kun ejeren, kun før kampstart) ville ellers stille og
+  // roligt have blokeret præcis denne opdatering uden nogen fejlbesked.
+  const admin = createAdminClient();
+
+  await admin
     .from("matches")
     .update({ result_home: resultHome, result_away: resultAway })
     .eq("id", matchId);
 
   // Beregn point for alle tips på denne kamp med det samme.
-  const { data: tips } = await supabase
+  const { data: tips } = await admin
     .from("tips")
     .select("id, tip_home, tip_away")
     .eq("match_id", matchId);
 
   for (const tip of tips ?? []) {
     const points = calculatePoints(tip.tip_home, tip.tip_away, resultHome, resultAway);
-    await supabase.from("tips").update({ points }).eq("id", tip.id);
+    await admin.from("tips").update({ points }).eq("id", tip.id);
   }
 
   revalidatePath("/admin/kampe");
