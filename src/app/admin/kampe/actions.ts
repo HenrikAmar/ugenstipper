@@ -91,41 +91,15 @@ export async function submitResult(matchId: string, formData: FormData) {
   // roligt have blokeret præcis denne opdatering uden nogen fejlbesked.
   const admin = createAdminClient();
 
-  await admin
+  const { error: matchError } = await admin
     .from("matches")
     .update({ result_home: resultHome, result_away: resultAway })
     .eq("id", matchId);
 
-  // Beregn point for alle tips på denne kamp med det samme.
-  const { data: tips } = await admin
-    .from("tips")
-    .select("id, tip_home, tip_away")
-    .eq("match_id", matchId);
-
-  for (const tip of tips ?? []) {
-    const points = calculatePoints(tip.tip_home, tip.tip_away, resultHome, resultAway);
-    await admin.from("tips").update({ points }).eq("id", tip.id);
+  if (matchError) {
+    console.error("submitResult: kunne ikke opdatere kampens resultat", matchError);
+    throw new Error(`Kunne ikke gemme resultatet: ${matchError.message}`);
   }
 
-  revalidatePath("/admin/kampe");
-  revalidatePath("/tip");
-  revalidatePath("/stilling");
-  revalidatePath("/statistik");
-}
-
-export async function deleteMatch(matchId: string) {
-  const supabase = await requireAdmin();
-  await supabase.from("matches").delete().eq("id", matchId);
-  revalidatePath("/admin/kampe");
-}
-
-// Sletter en hel runde. Kampene i runden - og alle tips på dem - bliver
-// automatisk slettet med (sat op i databasen med "on delete cascade").
-export async function deleteRound(roundId: string) {
-  const supabase = await requireAdmin();
-  await supabase.from("rounds").delete().eq("id", roundId);
-  revalidatePath("/admin/kampe");
-  revalidatePath("/tip");
-  revalidatePath("/stilling");
-  revalidatePath("/statistik");
-}
+  // Beregn point for alle tips på denne kamp med det samme.
+  const { data: tips, error: tipsFetchError } =
