@@ -1,34 +1,31 @@
--- ---------- BESØGSSTATISTIK ----------
--- Kør denne fil i Supabase -> SQL Editor -> New query -> Run.
--- Gemmer ét "besøg" pr. side-visning fra browseren, så admin kan se hvor
--- mange der bruger sitet - se src/components/VisitLogger.tsx og
--- src/app/api/log-visit. Vi gemmer bevidst intet i browseren (ingen cookie,
--- intet localStorage-id) - kun et rent tælle-tal af sidevisninger, så vi
--- undgår at skulle bede om samtykke efter cookie-/ePrivacy-reglerne.
+"use client";
 
-create table if not exists public.page_visits (
-  id uuid primary key default gen_random_uuid(),
-  created_at timestamptz not null default now(),
-  path text not null,
-  user_id uuid references auth.users (id) on delete set null
-);
+import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 
-create index if not exists page_visits_created_at_idx on public.page_visits (created_at);
+// Logger én side-visning pr. sideskift til /api/log-visit, så admin kan se
+// besøgstal i Supabase (tabellen public.page_visits). Sættes op én gang i
+// src/app/layout.tsx, så den dækker hele appen. usePathname() fanger også
+// client-side navigation mellem sider (Next.js skifter ikke hele siden).
+//
+// Gemmer bevidst INTET i browseren (ingen cookie, intet localStorage-id) -
+// kun et rent tælle-tal af sidevisninger, ingen "unikke besøgende". Det
+// betyder, at vi ikke skal bede om samtykke efter cookie-reglerne, som
+// ellers ville gælde for et persistent besøgs-id.
+export function VisitLogger() {
+  const pathname = usePathname();
 
-alter table public.page_visits enable row level security;
+  useEffect(() => {
+    if (!pathname) return;
+    fetch("/api/log-visit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: pathname }),
+      keepalive: true,
+    }).catch(() => {
+      // Kan ikke gøre mere ved det, hvis selve logningen fejler.
+    });
+  }, [pathname]);
 
--- Kun admin kan se besøgsstatistikken - almindelige brugere skal ikke kunne læse den.
-create policy "Kun admin kan se besøgsstatistik"
-  on public.page_visits for select
-  to authenticated
-  using (exists (select 1 from public.profiles where id = auth.uid() and role = 'admin'));
-
--- Grundlæggende tabel-adgang (adskilt fra RLS-reglen ovenfor, som styrer
--- HVILKE rækker man må se) - uden disse GRANT-linjer fejler forespørgsler
--- med "permission denied for table ...", uanset om nøglen er korrekt.
--- Kun service_role (admin-klienten i log-visit-routen) må INDSÆTTE besøg -
--- almindelige brugere/anon kan ikke skrive direkte til tabellen, så den
--- ikke kan manipuleres udefra.
-grant usage on schema public to service_role;
-grant select, insert on public.page_visits to service_role;
-grant select on public.page_visits to authenticated;
+  return null;
+}
