@@ -78,7 +78,10 @@ export default async function AdminKampePage({
           <span className="rounded-full bg-accent-tint px-3 py-1 text-xs font-bold text-accent">
             {userCount ?? 0} brugere
           </span>
-          <a href="/tip" className="text-sm font-semibold text-accent">
+          <a href="/admin/statistik" className="text-sm font-semibold text-accent">
+            Statistik →
+          </a>
+          <a href="/tip" className="text-sm font-semibold text-text-muted">
             ← Tilbage til Ugenstipper
           </a>
         </div>
