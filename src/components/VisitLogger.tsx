@@ -1,48 +1,34 @@
-"use client";
+-- ---------- BESØGSSTATISTIK ----------
+-- Kør denne fil i Supabase -> SQL Editor -> New query -> Run.
+-- Gemmer ét "besøg" pr. side-visning fra browseren, så admin kan se hvor
+-- mange der bruger sitet - se src/components/VisitLogger.tsx og
+-- src/app/api/log-visit. Vi gemmer bevidst intet i browseren (ingen cookie,
+-- intet localStorage-id) - kun et rent tælle-tal af sidevisninger, så vi
+-- undgår at skulle bede om samtykke efter cookie-/ePrivacy-reglerne.
 
-import { useEffect } from "react";
-import { usePathname } from "next/navigation";
+create table if not exists public.page_visits (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  path text not null,
+  user_id uuid references auth.users (id) on delete set null
+);
 
-const STORAGE_KEY = "ugenstipper_visitor_id";
+create index if not exists page_visits_created_at_idx on public.page_visits (created_at);
 
-// Anonymt id pr. browser, så vi kan tælle "unikke besøgende" uden login.
-// Gemmes i localStorage, så det er det samme, næste gang personen kommer
-// tilbage i samme browser - men fortæller os intet om, hvem det er.
-function getVisitorId(): string {
-  try {
-    const existing = window.localStorage.getItem(STORAGE_KEY);
-    if (existing) return existing;
-    const fresh =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `v-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    window.localStorage.setItem(STORAGE_KEY, fresh);
-    return fresh;
-  } catch {
-    // Privat browsing e.l. kan blokere localStorage - så tæller besøget
-    // bare som "ny besøgende" hver gang, i stedet for at fejle helt.
-    return `v-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  }
-}
+alter table public.page_visits enable row level security;
 
-// Logger én side-visning pr. sideskift til /api/log-visit, så admin kan se
-// besøgstal i Supabase (tabellen public.page_visits). Sættes op én gang i
-// src/app/layout.tsx, så den dækker hele appen. usePathname() fanger også
-// client-side navigation mellem sider (Next.js skifter ikke hele siden).
-export function VisitLogger() {
-  const pathname = usePathname();
+-- Kun admin kan se besøgsstatistikken - almindelige brugere skal ikke kunne læse den.
+create policy "Kun admin kan se besøgsstatistik"
+  on public.page_visits for select
+  to authenticated
+  using (exists (select 1 from public.profiles where id = auth.uid() and role = 'admin'));
 
-  useEffect(() => {
-    if (!pathname) return;
-    fetch("/api/log-visit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path: pathname, visitor_id: getVisitorId() }),
-      keepalive: true,
-    }).catch(() => {
-      // Kan ikke gøre mere ved det, hvis selve logningen fejler.
-    });
-  }, [pathname]);
-
-  return null;
-}
+-- Grundlæggende tabel-adgang (adskilt fra RLS-reglen ovenfor, som styrer
+-- HVILKE rækker man må se) - uden disse GRANT-linjer fejler forespørgsler
+-- med "permission denied for table ...", uanset om nøglen er korrekt.
+-- Kun service_role (admin-klienten i log-visit-routen) må INDSÆTTE besøg -
+-- almindelige brugere/anon kan ikke skrive direkte til tabellen, så den
+-- ikke kan manipuleres udefra.
+grant usage on schema public to service_role;
+grant select, insert on public.page_visits to service_role;
+grant select on public.page_visits to authenticated;
