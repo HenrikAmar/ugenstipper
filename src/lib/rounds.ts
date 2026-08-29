@@ -7,9 +7,13 @@ export function roundLabel(r: Pick<Round, "kind" | "number">) {
 }
 
 /**
- * Henter de runder en almindelig bruger må se og tippe på:
- * den indeværende liga-runde samt de næste 2, PLUS alle bonusrunder (de følger
- * ikke rundeplanen - de er altid tippebare, indtil deres kampe starter).
+ * Henter de runder en almindelig bruger må se og tippe på: den aktuelle
+ * liga-runde og de næste 2 - men i den rækkefølge de rent faktisk finder
+ * sted. Bonusrunder følger ikke den almindelige rundeplan (de kan dukke op
+ * når som helst, fx når et dansk hold spiller i Europa), så de blandes ind
+ * kronologisk imellem liga-runderne efter deres kampes kickoff-tidspunkt -
+ * i stedet for altid at ligge sidst. Fx: Runde 3, Bonus runde 1, Runde 4.
+ * En bonusrunde, hvor alle kampe allerede er overstået, vises ikke længere.
  * (Håndhæves også i databasen via Row Level Security - se supabase/schema.sql.)
  */
 export async function getTippableRounds(
@@ -21,22 +25,82 @@ export async function getTippableRounds(
     .eq("is_current", true)
     .maybeSingle();
 
-  const { data: bonusRounds } = await supabase
+  const { data: bonusRoundsRaw } = await supabase
     .from("rounds")
     .select("*")
-    .eq("kind", "bonus")
-    .order("number", { ascending: true });
+    .eq("kind", "bonus");
+  const bonusRounds: Round[] = bonusRoundsRaw ?? [];
 
-  if (!current) return bonusRounds ?? [];
+  if (!current) {
+    // Ingen aktiv liga-runde sat op endnu - vis kun åbne bonusrunder, i
+    // kronologisk rækkefølge.
+    return sortAndFilterChronologically(supabase, bonusRounds);
+  }
 
-  const { data: ligaRounds } = await supabase
+  // Generøs pulje af kommende liga-runder - flere af dem kan blive skubbet
+  // uden for de 3 viste pladser, hvis der ligger bonusrunder imellem dem.
+  const { data: ligaRoundsRaw } = await supabase
     .from("rounds")
     .select("*")
     .eq("kind", "liga")
-.eq("season", current.season)
+    .eq("season", current.season)
     .gte("number", current.number)
-    .lte("number", current.number + 2)
+    .lte("number", current.number + 6)
     .order("number", { ascending: true });
+  const ligaRounds: Round[] = ligaRoundsRaw ?? [];
 
-  return [...(ligaRounds ?? []), ...(bonusRounds ?? [])];
+  const sorted = await sortAndFilterChronologically(supabase, [
+    ...ligaRounds,
+    ...bonusRounds,
+  ]);
+
+  const currentIndex = sorted.findIndex((r) => r.id === current.id);
+  const startIndex = currentIndex === -1 ? 0 : currentIndex;
+
+  return sorted.slice(startIndex, startIndex + 3);
+}
+
+/**
+ * Sorterer runder efter, hvornår deres første kamp starter (en runde uden
+ * kampe endnu lægges sidst, indtil der er en dato at gå efter). Fjerner
+ * samtidig bonusrunder, hvor alle kampe allerede er overstået - liga-runder
+ * filtreres ikke fra her, de styres af admins "aktuel runde"-markering.
+ */
+async function sortAndFilterChronologically(
+  supabase: SupabaseClient,
+  rounds: Round[]
+): Promise<Round[]> {
+  if (rounds.length === 0) return [];
+
+  const { data: matches } = await supabase
+    .from("matches")
+    .select("round_id, kickoff_at")
+    .in(
+      "round_id",
+      rounds.map((r) => r.id)
+    );
+
+  const kickoffsByRound = new Map<string, number[]>();
+  for (const m of matches ?? []) {
+    const list = kickoffsByRound.get(m.round_id) ?? [];
+    list.push(new Date(m.kickoff_at).getTime());
+    kickoffsByRound.set(m.round_id, list);
+  }
+
+  const now = Date.now();
+  const relevant = rounds.filter((r) => {
+    if (r.kind !== "bonus") return true;
+    const kickoffs = kickoffsByRound.get(r.id);
+    if (!kickoffs || kickoffs.length === 0) return true; // ingen kampe endnu
+    return Math.max(...kickoffs) >= now; // skjul når alle kampe er overstået
+  });
+
+  return relevant.sort((a, b) => {
+    const aKickoffs = kickoffsByRound.get(a.id);
+    const bKickoffs = kickoffsByRound.get(b.id);
+    const aFirst = aKickoffs?.length ? Math.min(...aKickoffs) : Infinity;
+    const bFirst = bKickoffs?.length ? Math.min(...bKickoffs) : Infinity;
+    if (aFirst !== bFirst) return aFirst - bFirst;
+    return a.number - b.number;
+  });
 }
