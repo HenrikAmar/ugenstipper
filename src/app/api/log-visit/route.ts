@@ -9,8 +9,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const path = String(body?.path ?? "").slice(0, 500);
-    const visitorId = String(body?.visitor_id ?? "").slice(0, 100);
-    if (!path || !visitorId) return new Response("Bad request", { status: 400 });
+    if (!path) return new Response("Bad request", { status: 400 });
 
     // Bruges kun til (evt.) at finde brugerens id - fejler helt stille hvis
     // ingen er logget ind eller sessionen selv er i stykker; det må aldrig
@@ -29,7 +28,6 @@ export async function POST(request: NextRequest) {
     const admin = createAdminClient();
     await admin.from("page_visits").insert({
       path,
-      visitor_id: visitorId,
       user_id: userId,
     });
 
