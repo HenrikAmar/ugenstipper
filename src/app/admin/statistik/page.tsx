@@ -41,7 +41,6 @@ interface InviteRow {
 interface VisitRow {
   created_at: string;
   path: string;
-  visitor_id: string;
 }
 
 // Bruges til at vise "for X dage siden" i stedet for rå datoer.
@@ -74,7 +73,7 @@ export default async function AdminStatistikPage() {
     admin.from("page_visits").select("*", { count: "exact", head: true }),
     admin
       .from("page_visits")
-      .select("created_at, path, visitor_id")
+      .select("created_at, path")
       .gte("created_at", new Date(Date.now() - 30 * DAY_MS).toISOString()),
   ]);
 
@@ -207,9 +206,9 @@ export default async function AdminStatistikPage() {
   const totalRawInvited = profiles.filter((p) => p.invited_by).length;
 
   // ---------- Besøg ----------
+  // Vi gemmer bevidst intet besøgs-id (hverken cookie eller localStorage),
+  // så "unikke besøgende" kan ikke opgøres - kun rene sidevisninger.
   const visits7d = visits.filter((v) => now - new Date(v.created_at).getTime() <= 7 * DAY_MS);
-  const uniqueVisitors30d = new Set(visits.map((v) => v.visitor_id)).size;
-  const uniqueVisitors7d = new Set(visits7d.map((v) => v.visitor_id)).size;
 
   const pathCounts = new Map<string, number>();
   for (const v of visits) {
@@ -352,18 +351,10 @@ export default async function AdminStatistikPage() {
 
       {/* ---------- Besøg ---------- */}
       <h2 className="mt-8 text-sm font-bold uppercase tracking-wide text-text-muted">Besøg</h2>
-      <div className="mt-2 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+      <div className="mt-2 grid grid-cols-2 gap-2.5">
         <div className="card rounded-xl p-3.5">
           <div className="text-[11.5px] font-semibold text-text-muted">Sidevisninger i alt</div>
           <div className="mt-1 font-heading text-2xl font-extrabold">{pageviewsAllTime ?? 0}</div>
-        </div>
-        <div className="card rounded-xl p-3.5">
-          <div className="text-[11.5px] font-semibold text-text-muted">Unikke (30 dage)</div>
-          <div className="mt-1 font-heading text-2xl font-extrabold">{uniqueVisitors30d}</div>
-        </div>
-        <div className="card rounded-xl p-3.5">
-          <div className="text-[11.5px] font-semibold text-text-muted">Unikke (7 dage)</div>
-          <div className="mt-1 font-heading text-2xl font-extrabold">{uniqueVisitors7d}</div>
         </div>
         <div className="card rounded-xl p-3.5">
           <div className="text-[11.5px] font-semibold text-text-muted">Visninger (7 dage)</div>
