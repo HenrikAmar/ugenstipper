@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Sora, Public_Sans, IBM_Plex_Mono } from "next/font/google";
+import { ErrorLogger } from "@/components/ErrorLogger";
 import "./globals.css";
 
 const sora = Sora({
@@ -35,6 +36,7 @@ export default function RootLayout({
       <body
         className={`${sora.variable} ${publicSans.variable} ${plexMono.variable} font-body`}
       >
+        <ErrorLogger />
         {children}
       </body>
     </html>
