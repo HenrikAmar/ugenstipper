@@ -5,7 +5,10 @@ export async function middleware(request: NextRequest) {
   const { supabaseResponse, user } = await updateSession(request);
 
   const path = request.nextUrl.pathname;
-  const isPublicPath = path.startsWith("/login") || path.startsWith("/auth");
+  // /regler skal kunne ses uden at være logget ind, så man kan læse reglerne,
+  // før man vælger at oprette en bruger (se knappen på login-siden).
+  const isPublicPath =
+    path.startsWith("/login") || path.startsWith("/auth") || path.startsWith("/regler");
 
   if (!user && !isPublicPath) {
     const url = request.nextUrl.clone();
