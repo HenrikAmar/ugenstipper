@@ -60,6 +60,11 @@ export function MatchCard({
   }
 
   if (locked) {
+    // "Dit tip"-linjen og "kampen er i gang"-linjen skal fremstå lige så
+    // tydelige som holdnavnene (text-sm) - kun "Du tippede ikke på denne
+    // kamp" (ingen tip at fremhæve) beholder den mindre skriftstørrelse.
+    const footerTextSize = finished && !existingTip ? "text-[11.5px]" : "text-sm";
+
     return (
       <div className="card flex flex-col gap-2.5 rounded-card border-border bg-surface-2 p-4 opacity-80">
         <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
@@ -68,25 +73,32 @@ export function MatchCard({
             <span className="truncate text-sm font-semibold">{match.home_team}</span>
           </div>
           <div className="flex items-center gap-2 font-heading text-base font-bold text-text-muted">
-            <span>{finished ? match.result_home : existingTip?.tip_home ?? "–"}</span>
+            {/* Mens kampen er i gang (ikke længere kun "låst", men heller ikke
+                afgjort endnu) skal felterne stå tomme - de må aldrig vise
+                brugerens eget tip som om det var stillingen. */}
+            <span>{finished ? match.result_home : "–"}</span>
             <span className="text-[#B7BEC9]">–</span>
-            <span>{finished ? match.result_away : existingTip?.tip_away ?? "–"}</span>
+            <span>{finished ? match.result_away : "–"}</span>
           </div>
           <div className="flex min-w-0 items-center justify-end gap-2.5">
             <span className="truncate text-sm font-semibold">{match.away_team}</span>
             <TeamBadge team={match.away_team} />
           </div>
         </div>
-        <div className="flex items-center justify-between text-[11.5px] font-semibold text-text-muted">
-          <span>
+        <div className="flex items-center justify-between gap-2 font-semibold text-text-muted">
+          <span className={footerTextSize}>
             {finished
               ? existingTip
-                ? `Din tip: ${existingTip.tip_home}-${existingTip.tip_away}`
+                ? `Dit tip: ${existingTip.tip_home}-${existingTip.tip_away}`
                 : "Du tippede ikke på denne kamp"
-              : "Kampen er i gang · dit tip er låst"}
+              : existingTip
+                ? `Kampen er i gang · dit tip er låst (dit tip: ${existingTip.tip_home}-${existingTip.tip_away})`
+                : "Kampen er i gang · dit tip er låst"}
           </span>
           {finished && existingTip?.points !== null && existingTip?.points !== undefined && (
-            <span className="font-bold text-accent">+{existingTip.points} point</span>
+            <span className="shrink-0 text-[11.5px] font-bold text-accent">
+              +{existingTip.points} point
+            </span>
           )}
         </div>
       </div>
@@ -128,7 +140,7 @@ export function MatchCard({
       </div>
 
       <div className="flex items-center justify-between">
-        <span className="text-[11.5px] font-semibold text-text-muted">
+        <span className="text-sm font-semibold text-text-muted">
           {formatKickoff(match.kickoff_at)}
         </span>
 
