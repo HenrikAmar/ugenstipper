@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/Logo";
 
@@ -78,6 +79,12 @@ export default function LoginPage() {
         <p className="mt-2 max-w-[260px] text-[12.5px] text-[#AAB4C6]">
           Vi er i testfase, så der er ingen præmier endnu - det er på vej!
         </p>
+        <Link
+          href="/regler"
+          className="mt-3 inline-block text-[12.5px] font-semibold text-white underline underline-offset-2"
+        >
+          Læs reglerne, før du opretter dig
+        </Link>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-1 flex-col gap-4 px-6 py-7">
