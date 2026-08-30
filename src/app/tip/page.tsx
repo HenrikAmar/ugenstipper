@@ -5,6 +5,7 @@ import { MatchCard } from "@/components/MatchCard";
 import { BottomNav } from "@/components/BottomNav";
 import { AppHeader } from "@/components/AppHeader";
 import type { Match, Tip } from "@/lib/types";
+import { runAutoResultater } from "@/lib/autoResultater";
 
 // Data ændrer sig hele tiden (nye tips, admin-ændringer) - denne side må
 // aldrig caches af Next.js, den skal altid hente friske data.
@@ -19,6 +20,17 @@ export default async function TipPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Henter automatisk officielle resultater fra API-Football for kampe der
+  // mangler et resultat, hver gang nogen besøger Tip-siden - se
+  // src/lib/autoResultater.ts. Funktionen tjekker selv om der overhovedet er
+  // noget at hente, så det er billigt at kalde på hvert sidebesøg. Fejler
+  // det, må det aldrig vælte selve siden - kun logges.
+  try {
+    await runAutoResultater();
+  } catch (err) {
+    console.error("Automatisk resultat-hentning fejlede", err);
+  }
 
   const rounds = await getTippableRounds(supabase);
 
