@@ -10,6 +10,12 @@ const MAX_LOOKBACK_DAYS = 10;
 // Hvor tæt et API-Football-kicketidspunkt skal ligge på vores eget
 // kickoff_at, for at vi tør sige det er samme kamp (timezone-margin).
 const KICKOFF_TOLERANCE_MS = 20 * 60 * 60 * 1000; // 20 timer
+// Hvor sjældent vi højst må spørge API-Football selv, uanset hvor mange
+// gange runAutoResultater() bliver kaldt (GitHub Actions hvert 5. minut +
+// hvert besøg på Tip/Stilling) - se supabase/api_football_throttle.sql.
+// Holder os trygt under de 100 gratis forespørgsler om dagen selv under en
+// hel spillerunde, mens resultater stadig kommer ind inden for et kvarter.
+const THROTTLE_MINUTES = 15;
 
 interface PendingMatch {
   id: string;
@@ -30,6 +36,38 @@ function roundKind(m: PendingMatch): "liga" | "bonus" | null {
   const r = m.rounds;
   if (!r) return null;
   return Array.isArray(r) ? r[0]?.kind ?? null : r.kind;
+}
+
+/**
+ * Tjekker om det er under THROTTLE_MINUTES siden vi sidst faktisk spurgte
+ * API-Football, og sætter i så fald tidspunktet til nu, så den næste, der
+ * kalder funktionen, også bliver spærret. Fejler selve spærre-tjekket (fx
+ * fordi migrationen i supabase/api_football_throttle.sql ikke er kørt
+ * endnu), lader vi hellere opslaget ske end at stoppe resultat-hentningen
+ * helt - derfor "fail open" i catch-blokken.
+ */
+async function isThrottled(admin: ReturnType<typeof createAdminClient>): Promise<boolean> {
+  try {
+    const { data } = await admin
+      .from("api_football_throttle")
+      .select("last_checked_at")
+      .eq("id", 1)
+      .maybeSingle();
+
+    const lastCheckedAt = data?.last_checked_at ? new Date(data.last_checked_at).getTime() : 0;
+    if (Date.now() - lastCheckedAt < THROTTLE_MINUTES * 60 * 1000) {
+      return true;
+    }
+
+    await admin
+      .from("api_football_throttle")
+      .upsert({ id: 1, last_checked_at: new Date().toISOString() });
+
+    return false;
+  } catch (err) {
+    console.error("isThrottled: kunne ikke tjekke/opdatere spærren", err);
+    return false;
+  }
 }
 
 function findMatchingFixture(
@@ -86,6 +124,12 @@ export async function runAutoResultater(): Promise<AutoResultaterSummary> {
 
   if (pending.length === 0) {
     return { checked: 0, updated: 0, skipped: 0, errors: [] };
+  }
+
+  // Spring selve API-Football-opslaget over, hvis vi har spurgt for nylig -
+  // se THROTTLE_MINUTES og isThrottled ovenfor.
+  if (await isThrottled(admin)) {
+    return { checked: pending.length, updated: 0, skipped: pending.length, errors: [] };
   }
 
   const kickoffTimes = pending.map((m) => new Date(m.kickoff_at).getTime());
