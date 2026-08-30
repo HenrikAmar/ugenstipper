@@ -1,0 +1,24 @@
+name: Hent Superliga-resultater automatisk
+
+# Kører hvert 5. minut og kalder vores egen /api/cron/auto-resultater-rute på
+# ugenstipper.dk, som henter officielle resultater fra API-Football for
+# kampe der mangler et resultat (se src/lib/autoResultater.ts). Dette er den
+# gratis erstatning for et hurtigt cron-job, fordi Vercels gratis plan kun
+# tillader ét kørt job om dagen. GitHub Actions' "schedule" er ikke
+# millisekund-præcis - den kan i praksis være nogle få minutter forsinket i
+# spidsbelastning, men det er stadig markant hurtigere end én gang om dagen.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  # Gør det muligt selv at trigge et kørsel manuelt fra GitHub's "Actions"-fane.
+  workflow_dispatch:
+
+jobs:
+  hent-resultater:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kald auto-resultater endpoint
+        run: |
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://ugenstipper.dk/api/cron/auto-resultater
