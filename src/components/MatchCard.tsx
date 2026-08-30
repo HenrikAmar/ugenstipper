@@ -92,7 +92,7 @@ export function MatchCard({
                 ? `Dit tip: ${existingTip.tip_home}-${existingTip.tip_away}`
                 : "Du tippede ikke på denne kamp"
               : existingTip
-                ? `Kampen er i gang · dit tip er låst (dit tip: ${existingTip.tip_home}-${existingTip.tip_away})`
+                ? `Kampen er i gang · dit tip er låst (${existingTip.tip_home}-${existingTip.tip_away})`
                 : "Kampen er i gang · dit tip er låst"}
           </span>
           {finished && existingTip?.points !== null && existingTip?.points !== undefined && (
