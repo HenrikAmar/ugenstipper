@@ -3,9 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { calculatePoints } from "@/lib/points";
 import { danishLocalToUtcISOString } from "@/lib/time";
+import { applyMatchResult } from "@/lib/applyMatchResult";
 
 async function requireAdmin() {
   const supabase = createClient();
@@ -85,44 +84,9 @@ export async function submitResult(matchId: string, formData: FormData) {
   const resultAway = parseInt(String(formData.get("result_away") ?? ""), 10);
   if (Number.isNaN(resultHome) || Number.isNaN(resultAway)) return;
 
-  // Brug admin-klienten (uden RLS) her - vi skal skrive point til ALLE
-  // brugeres tips, ikke kun adminens egne, og efter kampstart. Tips' egne
-  // RLS-regler (kun ejeren, kun før kampstart) ville ellers stille og
-  // roligt have blokeret præcis denne opdatering uden nogen fejlbesked.
-  const admin = createAdminClient();
-
-  const { error: matchError } = await admin
-    .from("matches")
-    .update({ result_home: resultHome, result_away: resultAway })
-    .eq("id", matchId);
-
-  if (matchError) {
-    console.error("submitResult: kunne ikke opdatere kampens resultat", matchError);
-    throw new Error(`Kunne ikke gemme resultatet: ${matchError.message}`);
-  }
-
-  // Beregn point for alle tips på denne kamp med det samme.
-  const { data: tips, error: tipsFetchError } = await admin
-    .from("tips")
-    .select("id, tip_home, tip_away")
-    .eq("match_id", matchId);
-
-  if (tipsFetchError) {
-    console.error("submitResult: kunne ikke hente tips til point-beregning", tipsFetchError);
-    throw new Error(`Kunne ikke hente tips: ${tipsFetchError.message}`);
-  }
-
-  for (const tip of tips ?? []) {
-    const points = calculatePoints(tip.tip_home, tip.tip_away, resultHome, resultAway);
-    const { error: tipUpdateError } = await admin
-      .from("tips")
-      .update({ points })
-      .eq("id", tip.id);
-    if (tipUpdateError) {
-      console.error("submitResult: kunne ikke opdatere point for tip", tip.id, tipUpdateError);
-      throw new Error(`Kunne ikke opdatere point: ${tipUpdateError.message}`);
-    }
-  }
+  // Selve skrivningen (resultat + genberegning af point) er delt med den
+  // automatiske resultat-hentning - se src/lib/applyMatchResult.ts.
+  await applyMatchResult(matchId, resultHome, resultAway);
 
   revalidatePath("/admin/kampe");
   revalidatePath("/tip");
