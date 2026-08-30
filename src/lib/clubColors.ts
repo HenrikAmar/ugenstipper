@@ -177,3 +177,20 @@ export function getClubStyle(teamName: string): ClubStyle | null {
   }
   return bestMatch;
 }
+
+// Bruges til at oversætte et holdnavn fra en ekstern kilde (API-Football) til
+// vores egen officielle stavning i SUPERLIGA_TEAMS - se src/lib/apiFootball.ts
+// og src/lib/autoResultater.ts. Genbruger den samme alias-liste ovenfor
+// (som allerede dækker både danske og engelske stavevarianter af holdnavnene),
+// så vi ikke skal vedligeholde en ekstra oversættelsestabel ved siden af.
+const CODE_TO_OFFICIAL_NAME = new Map<string, string>();
+for (const team of SUPERLIGA_TEAMS) {
+  const style = getClubStyle(team);
+  if (style) CODE_TO_OFFICIAL_NAME.set(style.code, team);
+}
+
+export function resolveSuperligaTeamName(externalName: string): string | null {
+  const style = getClubStyle(externalName);
+  if (!style) return null;
+  return CODE_TO_OFFICIAL_NAME.get(style.code) ?? null;
+}
