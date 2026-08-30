@@ -13,7 +13,9 @@ import type { Match, Round } from "@/lib/types";
 import { utcToDanishLocalInputValue } from "@/lib/time";
 import { SUPERLIGA_TEAMS } from "@/lib/clubColors";
 import { DeleteRoundButton } from "@/components/DeleteRoundButton";
+import { AutoResultButton } from "@/components/AutoResultButton";
 import { roundLabel } from "@/lib/rounds";
+import { runAutoResultater } from "@/lib/autoResultater";
 
 // Til redigeringsformularen: sørger for at holdets nuværende navn altid er en
 // mulighed i dropdown'en, selv hvis det (fra en gammel kamp) ikke matcher
@@ -31,6 +33,16 @@ export default async function AdminKampePage({
   searchParams: { runde?: string };
 }) {
   const supabase = createClient();
+
+  // Henter automatisk officielle resultater fra API-Football for kampe der
+  // mangler et resultat, hver gang admin åbner siden - se
+  // src/lib/autoResultater.ts. Fejler det (fx manglende API-nøgle), skal det
+  // aldrig vælte selve admin-siden - kun logges.
+  try {
+    await runAutoResultater();
+  } catch (err) {
+    console.error("Automatisk resultat-hentning fejlede", err);
+  }
 
   const { count: userCount } = await supabase
     .from("profiles")
@@ -84,6 +96,7 @@ export default async function AdminKampePage({
           <a href="/tip" className="text-sm font-semibold text-text-muted">
             ← Tilbage til Ugenstipper
           </a>
+          <AutoResultButton />
         </div>
       </div>
 
