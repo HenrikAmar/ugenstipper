@@ -5,6 +5,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { MiniligaStanding } from "@/components/MiniligaStanding";
 import { SeasonSelect } from "@/components/SeasonSelect";
 import { buildStickyRanking, type RankRow, type StickyRow } from "@/lib/ranking";
+import { runAutoResultater } from "@/lib/autoResultater";
 import Link from "next/link";
 
 // Stillingen ændrer sig når admin indtaster resultater - må ikke caches.
@@ -99,6 +100,15 @@ export default async function StillingPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Samme automatiske resultat-hentning som på Tip-siden - se
+  // src/lib/autoResultater.ts. Billig at kalde (tjekker selv om der er
+  // noget at hente), og må aldrig vælte siden hvis den fejler.
+  try {
+    await runAutoResultater();
+  } catch (err) {
+    console.error("Automatisk resultat-hentning fejlede", err);
+  }
 
   const visning = searchParams.visning === "runde" ? "runde" : "samlet";
 
