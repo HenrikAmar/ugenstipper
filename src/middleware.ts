@@ -35,11 +35,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Allerede logget ind? Så skal man ikke se salgs-forsiden eller login-siden
-  // igen - man skal direkte ind til at tippe.
-  if (user && (path === "/login" || path === "/")) {
+  // Allerede logget ind og på vej til login-siden? Så skal man ikke se den
+  // igen - man skal ind på forsiden ("Hjem"), hvor evt. nyheder/beskeder
+  // vises, før man selv vælger at gå videre til at tippe (se src/app/page.tsx
+  // - "/" viser noget forskelligt afhængig af om man er logget ind eller ej,
+  // så den skal IKKE omdirigeres videre her).
+  if (user && path === "/login") {
     const url = request.nextUrl.clone();
-    url.pathname = "/tip";
+    url.pathname = "/";
     return NextResponse.redirect(url);
   }
 
