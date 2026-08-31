@@ -5,11 +5,19 @@ import { MatchCard } from "@/components/MatchCard";
 import { BottomNav } from "@/components/BottomNav";
 import { AppHeader } from "@/components/AppHeader";
 import type { Match, Tip } from "@/lib/types";
-import { runAutoResultater } from "@/lib/autoResultater";
 
 // Data ændrer sig hele tiden (nye tips, admin-ændringer) - denne side må
 // aldrig caches af Next.js, den skal altid hente friske data.
 export const dynamic = "force-dynamic";
+
+// BEMÆRK: automatisk resultat-hentning (runAutoResultater) blev fjernet
+// herfra igen den 31/8 - den kørte på hvert eneste besøg på denne side, og
+// lagde formentlig for meget ekstra belastning på databasen når mange
+// besøgte samtidig, hvilket ser ud til at have været årsag til at flere
+// brugere ikke kunne logge ind. Automatisk resultat-hentning sker stadig via
+// GitHub Actions (hvert 5. minut, kaldet auto-resultater.yml), det daglige
+// Vercel cron-job, og admin/kampe-sidens "Hent resultater nu"-knap - så
+// funktionen er ikke væk, bare flyttet væk fra almindelige brugeres sider.
 
 export default async function TipPage({
   searchParams,
@@ -20,17 +28,6 @@ export default async function TipPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  // Henter automatisk officielle resultater fra API-Football for kampe der
-  // mangler et resultat, hver gang nogen besøger Tip-siden - se
-  // src/lib/autoResultater.ts. Funktionen tjekker selv om der overhovedet er
-  // noget at hente, så det er billigt at kalde på hvert sidebesøg. Fejler
-  // det, må det aldrig vælte selve siden - kun logges.
-  try {
-    await runAutoResultater();
-  } catch (err) {
-    console.error("Automatisk resultat-hentning fejlede", err);
-  }
 
   const rounds = await getTippableRounds(supabase);
 
