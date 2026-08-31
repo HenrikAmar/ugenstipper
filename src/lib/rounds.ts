@@ -29,16 +29,12 @@ const GRACE_PERIOD_MS = 24 * 60 * 60 * 1000; // et døgn
 export async function getTippableRounds(
   supabase: SupabaseClient
 ): Promise<Round[]> {
-  const { data: current } = await supabase
-    .from("rounds")
-    .select("*")
-    .eq("is_current", true)
-    .maybeSingle();
-
-  const { data: bonusRoundsRaw } = await supabase
-    .from("rounds")
-    .select("*")
-    .eq("kind", "bonus");
+  // De to opslag herunder er uafhængige af hinanden - kør dem samtidig i
+  // stedet for efter hinanden, det gør siden mærkbart hurtigere at åbne.
+  const [{ data: current }, { data: bonusRoundsRaw }] = await Promise.all([
+    supabase.from("rounds").select("*").eq("is_current", true).maybeSingle(),
+    supabase.from("rounds").select("*").eq("kind", "bonus"),
+  ]);
   const bonusRounds: Round[] = bonusRoundsRaw ?? [];
 
   if (!current) {
@@ -47,28 +43,32 @@ export async function getTippableRounds(
     return sortAndFilterChronologically(supabase, bonusRounds);
   }
 
-  // Generøs pulje af kommende liga-runder - flere af dem kan blive skubbet
-  // uden for de 3 viste pladser, hvis der ligger bonusrunder imellem dem.
-  const { data: ligaRoundsRaw } = await supabase
-    .from("rounds")
-    .select("*")
-    .eq("kind", "liga")
-    .eq("season", current.season)
-    .gte("number", current.number)
-    .lte("number", current.number + 6)
-    .order("number", { ascending: true });
+  // Samme princip her: den kommende-runder-forespørgsel og
+  // forrige-runde-forespørgslen er også uafhængige af hinanden.
+  const [{ data: ligaRoundsRaw }, { data: previousRoundRaw }] = await Promise.all([
+    // Generøs pulje af kommende liga-runder - flere af dem kan blive
+    // skubbet uden for de 3 viste pladser, hvis der ligger bonusrunder
+    // imellem dem.
+    supabase
+      .from("rounds")
+      .select("*")
+      .eq("kind", "liga")
+      .eq("season", current.season)
+      .gte("number", current.number)
+      .lte("number", current.number + 6)
+      .order("number", { ascending: true }),
+    // Tjek om den forrige liga-runde stadig skal vises (inden for et døgn
+    // efter dens sidste kamp) - den er ikke med i forespørgslen ovenfor,
+    // da den er faldet under "current.number".
+    supabase
+      .from("rounds")
+      .select("*")
+      .eq("kind", "liga")
+      .eq("season", current.season)
+      .eq("number", current.number - 1)
+      .maybeSingle(),
+  ]);
   const ligaRounds: Round[] = ligaRoundsRaw ?? [];
-
-  // Tjek om den forrige liga-runde stadig skal vises (inden for et døgn
-  // efter dens sidste kamp) - den er ikke med i forespørgslen ovenfor, da
-  // den er faldet under "current.number".
-  const { data: previousRoundRaw } = await supabase
-    .from("rounds")
-    .select("*")
-    .eq("kind", "liga")
-    .eq("season", current.season)
-    .eq("number", current.number - 1)
-    .maybeSingle();
 
   let includedPreviousRound = false;
   if (previousRoundRaw) {
