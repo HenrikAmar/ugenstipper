@@ -109,7 +109,7 @@ export default function LoginPage() {
           <>
             {mode === "signup" && (
               <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-semibold">Navn</label>
+                <label className="text-[13px] font-semibold">Brugernavn</label>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
