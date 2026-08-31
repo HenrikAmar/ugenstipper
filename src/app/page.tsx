@@ -1,11 +1,29 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Logo } from "@/components/Logo";
+import { AppHeader } from "@/components/AppHeader";
+import { BottomNav } from "@/components/BottomNav";
 
-// Forsiden - præsenterer konkurrencen for nye besøgende, før de opretter sig.
-// Data (om man er logget ind) kan ændre sig - må ikke caches.
+// Forsiden. Viser noget forskelligt afhængig af om man er logget ind:
+// - Ikke logget ind: en salgs-/præsentationsside, der forklarer konkurrencen
+//   og opfordrer til at oprette en bruger (den gamle forside redirectede
+//   bare direkte til /tip uden nogen præsentation).
+// - Logget ind: en "Hjem"-side med plads til nyheder/beskeder (fx "Nu er der
+//   kommet præmier!") og en stor "Tip her"-knap videre til /tip - man bliver
+//   IKKE længere sendt direkte til /tip efter login.
+//
+// Data (om man er logget ind, nyheder) kan ændre sig - må ikke caches.
 export const dynamic = "force-dynamic";
+
+// Nyheder/beskeder til den indloggede forside - redigér denne liste for at
+// opdatere, hvad brugerne ser, når de logger ind eller trykker "Hjem" i
+// bunden. Nyeste øverst; den øverste får automatisk et lille "NYT"-mærke.
+const ANNOUNCEMENTS: { title: string; text: string }[] = [
+  {
+    title: "Velkommen til Ugenstipper",
+    text: "Tip ugens kampe, saml point, og se hvordan du klarer dig mod dine venner i stillingen.",
+  },
+];
 
 const STEPS = [
   {
@@ -47,9 +65,44 @@ export default async function HomePage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Allerede logget ind? Så skal man direkte ind og tippe, ikke se salgsteksten igen.
+  // Allerede logget ind? Vis "Hjem" med nyheder + en stor "Tip her"-knap i
+  // stedet for salgsteksten - man skal ikke se den igen, men skal heller
+  // ikke sendes direkte til /tip uden om denne side.
   if (user) {
-    redirect("/tip");
+    return (
+      <div className="mx-auto min-h-screen max-w-[420px] bg-bg pb-24">
+        <AppHeader title="Hjem" />
+
+        <div className="flex flex-col gap-3 px-5 pt-3">
+          {ANNOUNCEMENTS.map((announcement, i) => (
+            <div key={announcement.title} className="card rounded-xl p-4">
+              <div className="flex items-center gap-2">
+                {i === 0 && (
+                  <span className="rounded-full bg-accent-tint px-2 py-0.5 text-[10px] font-bold text-accent">
+                    NYT
+                  </span>
+                )}
+                <h2 className="text-[15px] font-bold">{announcement.title}</h2>
+              </div>
+              <p className="mt-1.5 text-[13.5px] leading-relaxed text-text-muted">
+                {announcement.text}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="px-5 pt-5">
+          <Link
+            href="/tip"
+            className="flex h-16 items-center justify-center rounded-[14px] bg-accent-2 text-[18px] font-extrabold text-white"
+          >
+            Tip her
+          </Link>
+        </div>
+
+        <BottomNav />
+      </div>
+    );
   }
 
   const ref = searchParams.ref;
