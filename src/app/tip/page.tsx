@@ -10,15 +10,6 @@ import type { Match, Tip } from "@/lib/types";
 // aldrig caches af Next.js, den skal altid hente friske data.
 export const dynamic = "force-dynamic";
 
-// BEMÆRK: automatisk resultat-hentning (runAutoResultater) blev fjernet
-// herfra igen den 31/8 - den kørte på hvert eneste besøg på denne side, og
-// lagde formentlig for meget ekstra belastning på databasen når mange
-// besøgte samtidig, hvilket ser ud til at have været årsag til at flere
-// brugere ikke kunne logge ind. Automatisk resultat-hentning sker stadig via
-// GitHub Actions (hvert 5. minut, kaldet auto-resultater.yml), det daglige
-// Vercel cron-job, og admin/kampe-sidens "Hent resultater nu"-knap - så
-// funktionen er ikke væk, bare flyttet væk fra almindelige brugeres sider.
-
 export default async function TipPage({
   searchParams,
 }: {
