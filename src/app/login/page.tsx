@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/Logo";
+import { isUsernameTaken } from "./actions";
 
 type Mode = "login" | "signup" | "forgot";
 
@@ -38,10 +39,21 @@ export default function LoginPage() {
       if (error) setError("Forkert e-mail eller adgangskode.");
       else window.location.href = "/tip";
     } else if (mode === "signup") {
+      const trimmedName = name.trim();
+
+      // Tjekker med det samme om brugernavnet allerede er taget, så man ikke
+      // først opdager det efter et mislykket forsøg - selve garantien mod
+      // dubletter ligger dog i databasen (se supabase/username_unique.sql).
+      if (trimmedName && (await isUsernameTaken(trimmedName))) {
+        setError("Det brugernavn er allerede taget - vælg et andet.");
+        setLoading(false);
+        return;
+      }
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: name || undefined, invited_by: ref || undefined } },
+        options: { data: { full_name: trimmedName || undefined, invited_by: ref || undefined } },
       });
       if (error) setError(error.message);
       else setInfo("Bruger oprettet! Tjek din e-mail for at bekræfte kontoen.");
