@@ -100,7 +100,10 @@ export async function getTippableRounds(
   const windowStart =
     previousIndex !== -1 ? Math.min(previousIndex, startIndex) : startIndex;
 
-  return sorted.slice(windowStart, startIndex + 3);
+  // Altid præcis 3 faneblade i alt - hvis den forrige runde er taget med,
+  // fortrænger den den fjerneste kommende runde, i stedet for at lægge sig
+  // oveni og give 4 (det gav en grim sidelæns scrollbar på Tip-siden).
+  return sorted.slice(windowStart, windowStart + 3);
 }
 
 /**
