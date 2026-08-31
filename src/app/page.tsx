@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
 const ANNOUNCEMENTS: { title: string; text: string }[] = [
   {
     title: "Velkommen til Ugenstipper",
-    text: "Tip ugens kampe, saml point, og se hvordan du klarer dig mod dine venner i stillingen.",
+    text: "Godt du er med! Tip ugens kampe, saml point for hver runde, og hold øje med, hvordan du klarer dig mod dine venner i stillingen. Vi opdaterer denne side, når der sker noget nyt - så kig forbi her, næste gang du logger ind.",
   },
 ];
 
@@ -71,9 +71,17 @@ export default async function HomePage({
   if (user) {
     return (
       <div className="mx-auto min-h-screen max-w-[420px] bg-bg pb-24">
-        <AppHeader title="Hjem" />
+        <AppHeader title="Ugenstipper.dk" />
 
-        <div className="flex flex-col gap-3 px-5 pt-3">
+        <div className="px-5 pt-1">
+          <p className="text-[13.5px] leading-relaxed text-text-muted">
+            Superligaens hyggeligste konkurrence - helt gratis, og lavet af fodboldgale venner for
+            fodboldgale venner. Her på forsiden holder vi dig opdateret, så kig forbi engang
+            imellem, og tryk &bdquo;Tip her&rdquo;, når du er klar til ugens runde.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-3 px-5 pt-4">
           {ANNOUNCEMENTS.map((announcement, i) => (
             <div key={announcement.title} className="card rounded-xl p-4">
               <div className="flex items-center gap-2">
@@ -98,6 +106,45 @@ export default async function HomePage({
           >
             Tip her
           </Link>
+        </div>
+
+        <div className="px-5 pt-8">
+          <h2 className="text-[13px] font-bold uppercase tracking-wide text-text-muted">
+            Sådan virker det
+          </h2>
+          <div className="mt-3 flex flex-col gap-3">
+            {STEPS.map((step, i) => (
+              <div key={step.title} className="card flex items-start gap-3 rounded-xl p-4">
+                <div className="badge flex-shrink-0 bg-accent-2">{i + 1}</div>
+                <div>
+                  <h3 className="text-[14px] font-bold">{step.title}</h3>
+                  <p className="mt-1 text-[13px] leading-relaxed text-text-muted">{step.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="px-5 pt-8">
+          <h2 className="text-[13px] font-bold uppercase tracking-wide text-text-muted">
+            Mere end bare tips
+          </h2>
+          <div className="mt-3 flex flex-col gap-3">
+            {FEATURES.map((feature) => (
+              <div key={feature.title} className="card rounded-xl p-4">
+                <h3 className="text-[14px] font-bold">{feature.title}</h3>
+                <p className="mt-1 text-[13px] leading-relaxed text-text-muted">{feature.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="px-5 pt-8">
+          <p className="text-center text-[13px] text-text-muted">
+            <Link href="/regler" className="font-semibold text-accent underline underline-offset-2">
+              Læs de fulde regler
+            </Link>
+          </p>
         </div>
 
         <BottomNav />
