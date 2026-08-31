@@ -16,11 +16,15 @@ export default async function TipPage({
   searchParams: { runde?: string };
 }) {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
-  const rounds = await getTippableRounds(supabase);
+  // De to opslag herunder er uafhængige af hinanden - kør dem samtidig i
+  // stedet for efter hinanden, det gør siden mærkbart hurtigere at åbne.
+  const [
+    {
+      data: { user },
+    },
+    rounds,
+  ] = await Promise.all([supabase.auth.getUser(), getTippableRounds(supabase)]);
 
   if (rounds.length === 0) {
     return (
