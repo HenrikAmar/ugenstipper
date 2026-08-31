@@ -19,6 +19,6 @@ jobs:
     steps:
       - name: Kald auto-resultater endpoint
         run: |
-          curl --fail --silent --show-error \
+          curl --fail --silent --show-error --location \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            https://ugenstipper.dk/api/cron/auto-resultater
+            https://www.ugenstipper.dk/api/cron/auto-resultater
