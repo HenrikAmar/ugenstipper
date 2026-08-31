@@ -20,8 +20,8 @@ export const dynamic = "force-dynamic";
 // bunden. Nyeste øverst; den øverste får automatisk et lille "NYT"-mærke.
 const ANNOUNCEMENTS: { title: string; text: string }[] = [
   {
-    title: "Velkommen til Ugenstipper",
-    text: "Godt du er med! Tip ugens kampe, saml point for hver runde, og hold øje med, hvordan du klarer dig mod dine venner i stillingen. Vi opdaterer denne side, når der sker noget nyt - så kig forbi her, næste gang du logger ind.",
+    title: "Nyt fra Ugenstipper",
+    text: "Godt du er med! Vi arbejder i øjeblikket på at finde gode præmier til jer, og på at kunne skyde den allerførste officielle turnering i gang snarest - så følg med her på forsiden, så du ikke går glip af noget, når det sker.",
   },
 ];
 
