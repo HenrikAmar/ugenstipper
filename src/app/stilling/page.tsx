@@ -3,8 +3,9 @@ import { TeamBadge } from "@/components/TeamBadge";
 import { BottomNav } from "@/components/BottomNav";
 import { AppHeader } from "@/components/AppHeader";
 import { MiniligaStanding } from "@/components/MiniligaStanding";
+import { StandingList } from "@/components/StandingList";
 import { SeasonSelect } from "@/components/SeasonSelect";
-import { buildStickyRanking, type RankRow, type StickyRow } from "@/lib/ranking";
+import { type RankRow } from "@/lib/ranking";
 import { runAutoResultater } from "@/lib/autoResultater";
 import Link from "next/link";
 
@@ -44,51 +45,6 @@ function seasonsNewestFirst(rounds: RoundLite[]): string[] {
   return Array.from(latestBySeason.entries())
     .sort((a, b) => (a[1] < b[1] ? 1 : -1))
     .map(([season]) => season);
-}
-
-function RankingList({
-  rows,
-  showGap,
-  userId,
-}: {
-  rows: StickyRow[];
-  showGap: boolean;
-  userId: string | undefined;
-}) {
-  return (
-    <div className="flex flex-col gap-2">
-      {rows.map((row, i) => {
-        const isMe = row.id === userId;
-        const isPinned = showGap && i === rows.length - 1;
-        return (
-          <div key={row.id} className="flex flex-col gap-2">
-            {isPinned && <div className="text-center text-sm text-text-muted">⋯</div>}
-            <div
-              className={`flex items-center gap-3 rounded-xl border p-3 ${
-                isMe ? "border-[1.5px] border-accent-2 bg-accent-tint" : "border-border bg-surface"
-              }`}
-            >
-              <div className="w-5 text-center font-heading text-sm font-bold text-text-muted">
-                {row.rank}
-              </div>
-              <TeamBadge team={row.display_name} size={34} />
-              <div className="flex-1 text-sm font-bold">
-                {row.display_name}
-                {isMe && (
-                  <span className="ml-1.5 rounded-full bg-[#CFF0E1] px-1.5 py-0.5 text-[10px] font-bold text-accent">
-                    DIG
-                  </span>
-                )}
-              </div>
-              <div className="w-10 text-right font-heading text-base font-extrabold">
-                {row.points}
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
 }
 
 export default async function StillingPage({
@@ -170,16 +126,12 @@ export default async function StillingPage({
     .map((p) => ({ ...p, points: totals.get(p.id) ?? 0 }))
     .sort((a, b) => b.points - a.points);
 
-  const generalDisplay = buildStickyRanking(ranking, user?.id, 5);
-
   // "All time" er erstattet af pr. bonus-sæson - kun brugere med mindst ét
   // bonuspoint i den valgte bonus-sæson vises.
   const bonusRanking: RankRow[] = (profiles ?? [])
     .map((p) => ({ ...p, points: bonusTotals.get(p.id) ?? 0 }))
     .filter((p) => p.points > 0)
     .sort((a, b) => b.points - a.points);
-
-  const bonusDisplay = buildStickyRanking(bonusRanking, user?.id, 5);
 
   const { data: membership } = await supabase
     .from("mini_league_members")
@@ -257,7 +209,7 @@ export default async function StillingPage({
       )}
 
       <div className={isViewingActiveSeason ? "px-5" : "px-5 pt-4"}>
-        <RankingList rows={generalDisplay.rows} showGap={generalDisplay.showGap} userId={user?.id} />
+        <StandingList ranking={ranking} userId={user?.id} expandLabel="Udvid stillingen" />
         {ranking.length === 0 && (
           <p className="py-8 text-center text-sm text-text-muted">
             Ingen point endnu denne sæson.
@@ -279,7 +231,7 @@ export default async function StillingPage({
               />
             )}
           </div>
-          <RankingList rows={bonusDisplay.rows} showGap={bonusDisplay.showGap} userId={user?.id} />
+          <StandingList ranking={bonusRanking} userId={user?.id} expandLabel="Udvid bonusstillingen" />
         </div>
       )}
 
