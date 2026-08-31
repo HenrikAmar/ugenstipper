@@ -39,7 +39,7 @@ export default function NulstilAdgangskodePage() {
     }
 
     setDone(true);
-    setTimeout(() => router.push("/tip"), 2000);
+    setTimeout(() => router.push("/"), 2000);
   }
 
   if (done) {
