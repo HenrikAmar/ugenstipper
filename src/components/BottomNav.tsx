@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const ITEMS = [
+  { href: "/", label: "Hjem" },
   { href: "/tip", label: "Tip" },
   { href: "/stilling", label: "Stilling" },
   { href: "/statistik", label: "Statistik" },
@@ -16,7 +17,10 @@ export function BottomNav() {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-10 flex h-16 items-center justify-around border-t border-border bg-surface">
       {ITEMS.map((item) => {
-        const active = pathname?.startsWith(item.href);
+        // "/" er et særtilfælde: den skal kun være aktiv på selve forsiden,
+        // ikke på alle sider (som ellers alle "starter med" "/").
+        const active =
+          item.href === "/" ? pathname === "/" : pathname?.startsWith(item.href);
         return (
           <Link
             key={item.href}
