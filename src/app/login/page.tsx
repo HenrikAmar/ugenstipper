@@ -113,7 +113,7 @@ export default function LoginPage() {
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Dit navn"
+                  placeholder="Vælg brugernavn"
                   className="h-12 rounded-[10px] border border-border bg-surface px-3.5 text-[15px]"
                 />
               </div>
