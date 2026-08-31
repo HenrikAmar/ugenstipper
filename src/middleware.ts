@@ -8,6 +8,10 @@ export async function middleware(request: NextRequest) {
   // /regler skal kunne ses uden at være logget ind, så man kan læse reglerne,
   // før man vælger at oprette en bruger (se knappen på login-siden).
   //
+  // "/" (forsiden) skal også kunne ses uden at være logget ind - det er den
+  // nye landingsside, der præsenterer konkurrencen for nye besøgende, før de
+  // opretter sig (se src/app/page.tsx).
+  //
   // VIGTIGT: /api skal ALTID være undtaget herfra. API-ruter (cron-jobs,
   // webhooks m.m.) har ingen indlogget browser-session med cookies - de
   // godkender sig selv på deres egen måde (se fx CRON_SECRET-tjekket i
@@ -19,6 +23,7 @@ export async function middleware(request: NextRequest) {
   // det fejlede synligt nogen steder. Fundet 31/8 i forbindelse med at
   // resultater ikke blev hentet automatisk.
   const isPublicPath =
+    path === "/" ||
     path.startsWith("/login") ||
     path.startsWith("/auth") ||
     path.startsWith("/regler") ||
@@ -30,7 +35,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && path === "/login") {
+  // Allerede logget ind? Så skal man ikke se salgs-forsiden eller login-siden
+  // igen - man skal direkte ind til at tippe.
+  if (user && (path === "/login" || path === "/")) {
     const url = request.nextUrl.clone();
     url.pathname = "/tip";
     return NextResponse.redirect(url);
