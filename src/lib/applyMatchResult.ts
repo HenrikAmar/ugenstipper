@@ -3,10 +3,8 @@ import { calculatePoints } from "@/lib/points";
 
 /**
  * Gemmer et officielt kampresultat og genberegner point for alle tips på
- * kampen med det samme. Delt mellem admin's manuelle "Gem resultat"-knap
- * (src/app/admin/kampe/actions.ts) og den automatiske resultat-hentning
- * (src/lib/autoResultater.ts), så de to veje aldrig kan komme ud af trit
- * med hinanden.
+ * kampen med det samme. Bruges af admin's manuelle "Gem resultat"-knap
+ * (se src/app/admin/kampe/actions.ts).
  */
 export async function applyMatchResult(
   matchId: string,
