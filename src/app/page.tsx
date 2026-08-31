@@ -1,5 +1,150 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import { Logo } from "@/components/Logo";
 
-export default function RootPage() {
-  redirect("/tip");
+// Forsiden - præsenterer konkurrencen for nye besøgende, før de opretter sig.
+// Data (om man er logget ind) kan ændre sig - må ikke caches.
+export const dynamic = "force-dynamic";
+
+const STEPS = [
+  {
+    title: "Tip kampene",
+    text: "Gæt resultatet for hver kamp i runden - du kan altid nå at ændre dine tips, helt frem til den enkelte kamp bliver fløjtet i gang.",
+  },
+  {
+    title: "Saml point",
+    text: "1 point for det rigtige udfald, 2 point hvis du også rammer det ene holds måltal - eller 5 point i alt, hvis du rammer resultatet helt præcist.",
+  },
+  {
+    title: "Følg stillingen",
+    text: "Se hvordan du klarer dig mod dine venner, runde efter runde - hele sæsonen igennem.",
+  },
+];
+
+const FEATURES = [
+  {
+    title: "Miniligaer",
+    text: "Opret din egen liga med venner, familie eller kollegaer - med eller uden kode.",
+  },
+  {
+    title: "Bonusrunder",
+    text: "Ekstra sjove runder ind imellem, fx når et dansk hold spiller i Europa.",
+  },
+  {
+    title: "Inviter venner",
+    text: "Få flere med, og se hvem der topper listen over inviterede venner.",
+  },
+];
+
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: { ref?: string };
+}) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Allerede logget ind? Så skal man direkte ind og tippe, ikke se salgsteksten igen.
+  if (user) {
+    redirect("/tip");
+  }
+
+  const ref = searchParams.ref;
+  const signupHref = `/login?mode=signup${ref ? `&ref=${ref}` : ""}`;
+  const loginHref = ref ? `/login?ref=${ref}` : "/login";
+
+  return (
+    <div className="mx-auto min-h-screen max-w-[420px] bg-bg">
+      <div className="relative overflow-hidden bg-navy px-7 pb-11 pt-14">
+        <Logo size={34} />
+        <h1 className="mt-6 max-w-[280px] text-[28px] font-bold leading-tight text-white">
+          Tip Superligaen med vennerne – helt gratis
+        </h1>
+        <p className="mt-3 max-w-[300px] text-[14.5px] leading-relaxed text-[#AAB4C6]">
+          Gæt resultaterne i hver runde, saml point, og se hvem der kender Superligaen bedst.
+        </p>
+        <p className="mt-2 max-w-[300px] text-[13px] text-[#AAB4C6]">
+          Ingen indsats, ingen odds - bare skarpe tips og en fælles stilling med vennerne.
+        </p>
+
+        <div className="mt-6 flex flex-col gap-2.5">
+          <Link
+            href={signupHref}
+            className="flex h-[50px] items-center justify-center rounded-[10px] bg-accent-2 text-[15px] font-bold text-white"
+          >
+            Opret gratis konto
+          </Link>
+          <Link
+            href={loginHref}
+            className="flex h-[50px] items-center justify-center rounded-[10px] border border-white/25 text-[15px] font-bold text-white"
+          >
+            Jeg har allerede en bruger
+          </Link>
+        </div>
+      </div>
+
+      <div className="px-6 pt-8">
+        <h2 className="text-[13px] font-bold uppercase tracking-wide text-text-muted">
+          Sådan virker det
+        </h2>
+        <div className="mt-3 flex flex-col gap-3">
+          {STEPS.map((step, i) => (
+            <div key={step.title} className="card flex items-start gap-3 rounded-xl p-4">
+              <div className="badge flex-shrink-0 bg-accent-2">{i + 1}</div>
+              <div>
+                <h3 className="text-[14px] font-bold">{step.title}</h3>
+                <p className="mt-1 text-[13px] leading-relaxed text-text-muted">{step.text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="px-6 pt-8">
+        <h2 className="text-[13px] font-bold uppercase tracking-wide text-text-muted">
+          Mere end bare tips
+        </h2>
+        <div className="mt-3 flex flex-col gap-3">
+          {FEATURES.map((feature) => (
+            <div key={feature.title} className="card rounded-xl p-4">
+              <h3 className="text-[14px] font-bold">{feature.title}</h3>
+              <p className="mt-1 text-[13px] leading-relaxed text-text-muted">{feature.text}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="px-6 pt-8">
+        <div className="card rounded-xl p-4">
+          <h2 className="text-[15px] font-bold">100% gratis, altid</h2>
+          <p className="mt-1.5 text-[13.5px] leading-relaxed text-text-muted">
+            Ugenstipper er lavet af fodboldgale venner i vores fritid - for sjov, uden indsats og
+            uden skjulte gebyrer. Vi er i øjeblikket i en testfase, så der er ingen præmier på
+            højkant endnu - det er på vej!
+          </p>
+        </div>
+      </div>
+
+      <div className="px-6 py-8">
+        <Link
+          href={signupHref}
+          className="flex h-[50px] items-center justify-center rounded-[10px] bg-accent-2 text-[15px] font-bold text-white"
+        >
+          Kom i gang - opret din bruger
+        </Link>
+        <p className="mt-3 text-center text-[13px] text-text-muted">
+          <Link href="/regler" className="font-semibold text-accent underline underline-offset-2">
+            Læs de fulde regler
+          </Link>
+        </p>
+      </div>
+
+      <footer className="border-t border-border px-6 py-6 text-center text-[12px] text-text-muted">
+        Ugenstipper · Gratis Superliga-tips med vennerne
+      </footer>
+    </div>
+  );
 }
