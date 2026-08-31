@@ -37,7 +37,7 @@ export default function LoginPage() {
     if (mode === "login") {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) setError("Forkert e-mail eller adgangskode.");
-      else window.location.href = "/tip";
+      else window.location.href = "/";
     } else if (mode === "signup") {
       const trimmedName = name.trim();
 
