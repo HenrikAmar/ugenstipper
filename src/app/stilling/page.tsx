@@ -6,11 +6,19 @@ import { MiniligaStanding } from "@/components/MiniligaStanding";
 import { StandingList } from "@/components/StandingList";
 import { SeasonSelect } from "@/components/SeasonSelect";
 import { type RankRow } from "@/lib/ranking";
-import { runAutoResultater } from "@/lib/autoResultater";
 import Link from "next/link";
 
 // Stillingen ændrer sig når admin indtaster resultater - må ikke caches.
 export const dynamic = "force-dynamic";
+
+// BEMÆRK: automatisk resultat-hentning (runAutoResultater) blev fjernet
+// herfra igen den 31/8 - den kørte på hvert eneste besøg på denne side, og
+// lagde formentlig for meget ekstra belastning på databasen når mange
+// besøgte samtidig, hvilket ser ud til at have været årsag til at flere
+// brugere ikke kunne logge ind. Automatisk resultat-hentning sker stadig via
+// GitHub Actions (hvert 5. minut, kaldet auto-resultater.yml), det daglige
+// Vercel cron-job, og admin/kampe-sidens "Hent resultater nu"-knap - så
+// funktionen er ikke væk, bare flyttet væk fra almindelige brugeres sider.
 
 interface RoundLite {
   id: string;
@@ -56,15 +64,6 @@ export default async function StillingPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  // Samme automatiske resultat-hentning som på Tip-siden - se
-  // src/lib/autoResultater.ts. Billig at kalde (tjekker selv om der er
-  // noget at hente), og må aldrig vælte siden hvis den fejler.
-  try {
-    await runAutoResultater();
-  } catch (err) {
-    console.error("Automatisk resultat-hentning fejlede", err);
-  }
 
   const visning = searchParams.visning === "runde" ? "runde" : "samlet";
 
