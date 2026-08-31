@@ -6,6 +6,11 @@ export function roundLabel(r: Pick<Round, "kind" | "number">) {
   return r.kind === "bonus" ? `Bonus runde ${r.number}` : `Runde ${r.number}`;
 }
 
+// Hvor længe en overstået runde stadig må ses/tippes på, efter dens sidste
+// kamp - så den ikke forsvinder i samme sekund, den ikke længere er aktuel
+// (for liga-runder) eller alle dens kampe er spillet (for bonusrunder).
+const GRACE_PERIOD_MS = 24 * 60 * 60 * 1000; // et døgn
+
 /**
  * Henter de runder en almindelig bruger må se og tippe på: den aktuelle
  * liga-runde og de næste 2 - men i den rækkefølge de rent faktisk finder
@@ -13,7 +18,12 @@ export function roundLabel(r: Pick<Round, "kind" | "number">) {
  * når som helst, fx når et dansk hold spiller i Europa), så de blandes ind
  * kronologisk imellem liga-runderne efter deres kampes kickoff-tidspunkt -
  * i stedet for altid at ligge sidst. Fx: Runde 3, Bonus runde 1, Runde 4.
- * En bonusrunde, hvor alle kampe allerede er overstået, vises ikke længere.
+ *
+ * Den lige overståede liga-runde (fx Runde 1, i det øjeblik admin gør
+ * Runde 2 til "aktuel") bliver ikke fjernet med det samme - den bliver
+ * stående i et døgn efter dens sidste kamp, så brugerne lige når at se den,
+ * før den forsvinder. Det samme gælder bonusrunder: de forsvinder først et
+ * døgn efter deres sidste kamp, i stedet for i samme sekund den er spillet.
  * (Håndhæves også i databasen via Row Level Security - se supabase/schema.sql.)
  */
 export async function getTippableRounds(
@@ -49,6 +59,33 @@ export async function getTippableRounds(
     .order("number", { ascending: true });
   const ligaRounds: Round[] = ligaRoundsRaw ?? [];
 
+  // Tjek om den forrige liga-runde stadig skal vises (inden for et døgn
+  // efter dens sidste kamp) - den er ikke med i forespørgslen ovenfor, da
+  // den er faldet under "current.number".
+  const { data: previousRoundRaw } = await supabase
+    .from("rounds")
+    .select("*")
+    .eq("kind", "liga")
+    .eq("season", current.season)
+    .eq("number", current.number - 1)
+    .maybeSingle();
+
+  let includedPreviousRound = false;
+  if (previousRoundRaw) {
+    const { data: previousMatches } = await supabase
+      .from("matches")
+      .select("kickoff_at")
+      .eq("round_id", previousRoundRaw.id);
+    const lastKickoff = (previousMatches ?? []).reduce(
+      (latest, m) => Math.max(latest, new Date(m.kickoff_at).getTime()),
+      0
+    );
+    if (lastKickoff > 0 && Date.now() - lastKickoff <= GRACE_PERIOD_MS) {
+      ligaRounds.unshift(previousRoundRaw as Round);
+      includedPreviousRound = true;
+    }
+  }
+
   const sorted = await sortAndFilterChronologically(supabase, [
     ...ligaRounds,
     ...bonusRounds,
@@ -57,14 +94,22 @@ export async function getTippableRounds(
   const currentIndex = sorted.findIndex((r) => r.id === current.id);
   const startIndex = currentIndex === -1 ? 0 : currentIndex;
 
-  return sorted.slice(startIndex, startIndex + 3);
+  const previousIndex = includedPreviousRound
+    ? sorted.findIndex((r) => r.id === previousRoundRaw!.id)
+    : -1;
+  const windowStart =
+    previousIndex !== -1 ? Math.min(previousIndex, startIndex) : startIndex;
+
+  return sorted.slice(windowStart, startIndex + 3);
 }
 
 /**
  * Sorterer runder efter, hvornår deres første kamp starter (en runde uden
  * kampe endnu lægges sidst, indtil der er en dato at gå efter). Fjerner
- * samtidig bonusrunder, hvor alle kampe allerede er overstået - liga-runder
- * filtreres ikke fra her, de styres af admins "aktuel runde"-markering.
+ * samtidig bonusrunder, hvor alle kampe er overstået for mere end et døgn
+ * siden (se GRACE_PERIOD_MS) - liga-runder filtreres ikke fra her, de
+ * styres af admins "aktuel runde"-markering (og det ekstra tjek af den
+ * forrige runde i getTippableRounds ovenfor).
  */
 async function sortAndFilterChronologically(
   supabase: SupabaseClient,
@@ -92,7 +137,8 @@ async function sortAndFilterChronologically(
     if (r.kind !== "bonus") return true;
     const kickoffs = kickoffsByRound.get(r.id);
     if (!kickoffs || kickoffs.length === 0) return true; // ingen kampe endnu
-    return Math.max(...kickoffs) >= now; // skjul når alle kampe er overstået
+    // Skjul først et døgn efter sidste kamp, i stedet for med det samme.
+    return Math.max(...kickoffs) >= now - GRACE_PERIOD_MS;
   });
 
   return relevant.sort((a, b) => {
