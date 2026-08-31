@@ -1,36 +1,46 @@
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import { NextResponse, type NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
+import { updateSession } from "@/lib/supabase/middleware";
 
-export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+export async function middleware(request: NextRequest) {
+  const { supabaseResponse, user } = await updateSession(request);
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(
-          cookiesToSet: { name: string; value: string; options: CookieOptions }[]
-        ) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          supabaseResponse = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
+  const path = request.nextUrl.pathname;
+  // /regler skal kunne ses uden at være logget ind, så man kan læse reglerne,
+  // før man vælger at oprette en bruger (se knappen på login-siden).
+  //
+  // VIGTIGT: /api skal ALTID være undtaget herfra. API-ruter (cron-jobs,
+  // webhooks m.m.) har ingen indlogget browser-session med cookies - de
+  // godkender sig selv på deres egen måde (se fx CRON_SECRET-tjekket i
+  // src/app/api/cron/*). Uden denne undtagelse fangede middleware'en enhver
+  // sådan forespørgsel som "ikke logget ind" og omdirigerede den til
+  // /login FØR den overhovedet nåede ruten - hvilket i praksis betød at
+  // BÅDE det daglige "husk at tippe"-cron-job OG det automatiske
+  // resultat-cron-job (Vercel + GitHub Actions) aldrig har virket, uden at
+  // det fejlede synligt nogen steder. Fundet 31/8 i forbindelse med at
+  // resultater ikke blev hentet automatisk.
+  const isPublicPath =
+    path.startsWith("/login") ||
+    path.startsWith("/auth") ||
+    path.startsWith("/regler") ||
+    path.startsWith("/api");
 
-  // VIGTIGT: getUser() kaldes for at forny access-tokenet - fjern den ikke.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  if (!user && !isPublicPath) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
+  }
 
-  return { supabaseResponse, user };
+  if (user && path === "/login") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/tip";
+    return NextResponse.redirect(url);
+  }
+
+  return supabaseResponse;
 }
+
+export const config = {
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
+};
