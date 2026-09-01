@@ -35,9 +35,27 @@ export default function LoginPage() {
     setLoading(true);
 
     if (mode === "login") {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) setError("Forkert e-mail eller adgangskode.");
-      else window.location.href = "/";
+      // Skelner mellem "forkert adgangskode" (som brugeren selv kan rette)
+      // og alt andet (fx en midlertidig netværks-/serverfejl, når Supabase
+      // lige skal "vågne" på gratis-planen) - ellers får folk at vide de har
+      // tastet forkert, selvom de ikke har. En try/catch omkring hele kaldet
+      // sikrer også, at knappen aldrig bliver hængende på "Et øjeblik …",
+      // hvis selve netværkskaldet fejler helt (i stedet for bare at give et
+      // Supabase-fejlsvar).
+      try {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          if (error.message.toLowerCase().includes("invalid login credentials")) {
+            setError("Forkert e-mail eller adgangskode.");
+          } else {
+            setError("Der opstod en midlertidig fejl - prøv venligst igen om lidt.");
+          }
+        } else {
+          window.location.href = "/";
+        }
+      } catch {
+        setError("Der opstod en midlertidig fejl - prøv venligst igen om lidt.");
+      }
     } else if (mode === "signup") {
       const trimmedName = name.trim();
 

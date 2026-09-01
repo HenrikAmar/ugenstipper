@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { AppHeader } from "@/components/AppHeader";
 import { BottomNav } from "@/components/BottomNav";
+import { PrefetchTip } from "@/components/PrefetchTip";
 
 // Forsiden. Viser noget forskelligt afhængig af om man er logget ind:
 // - Ikke logget ind: en salgs-/præsentationsside, der forklarer konkurrencen
@@ -70,6 +71,7 @@ export default async function HomePage({
   if (user) {
     return (
       <div className="mx-auto min-h-screen max-w-[420px] bg-bg pb-24">
+        <PrefetchTip />
         <AppHeader title="Ugenstipper.dk" />
 
         <div className="flex flex-col gap-3 px-5 pt-3">
