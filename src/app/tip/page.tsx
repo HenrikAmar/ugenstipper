@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getTippableRounds, roundLabel } from "@/lib/rounds";
 import { RoundTabs } from "@/components/RoundTabs";
@@ -81,6 +82,13 @@ export default async function TipPage({
         {matchList.map((match) => (
           <MatchCard key={match.id} match={match} existingTip={tipsByMatch.get(match.id)} />
         ))}
+      </div>
+
+      <div className="px-5 pt-5">
+        <Link href="/" className="block overflow-hidden rounded-xl">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/banner-forside.jpg" alt="Ugenstipper.dk" className="w-full" />
+        </Link>
       </div>
 
       <BottomNav />
