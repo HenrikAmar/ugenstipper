@@ -73,17 +73,7 @@ export default async function HomePage({
       <div className="mx-auto min-h-screen max-w-[420px] bg-bg pb-24">
         <AppHeader title="Ugenstipper.dk" />
 
-        <div className="px-5 pt-2">
-          <div className="card rounded-xl p-4">
-            <p className="text-[13.5px] leading-relaxed text-text-muted">
-              Superligaens hyggeligste konkurrence - helt gratis, og lavet af fodboldgale venner
-              for fodboldgale venner. Her på forsiden holder vi dig opdateret, så kig forbi engang
-              imellem, og tryk &bdquo;Tip her&rdquo;, når du er klar til ugens runde.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-3 px-5 pt-4">
+        <div className="flex flex-col gap-3 px-5 pt-3">
           {ANNOUNCEMENTS.map((announcement, i) => (
             <div key={announcement.title} className="card rounded-xl p-4">
               <div className="flex items-center gap-2">
