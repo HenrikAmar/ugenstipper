@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { Logo } from "@/components/Logo";
 import { AppHeader } from "@/components/AppHeader";
 import { BottomNav } from "@/components/BottomNav";
 
@@ -76,6 +75,14 @@ export default async function HomePage({
         <div className="flex flex-col gap-3 px-5 pt-3">
           {ANNOUNCEMENTS.map((announcement, i) => (
             <div key={announcement.title} className="card rounded-xl p-4">
+              {i === 0 && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src="/logo.png"
+                  alt="Ugenstipper.dk"
+                  className="mx-auto mb-3 block h-48 w-48"
+                />
+              )}
               <div className="flex items-center gap-2">
                 {i === 0 && (
                   <span className="rounded-full bg-accent-tint px-2 py-0.5 text-[10px] font-bold text-accent">
@@ -150,9 +157,10 @@ export default async function HomePage({
 
   return (
     <div className="mx-auto min-h-screen max-w-[420px] bg-bg">
-      <div className="relative overflow-hidden bg-navy px-7 pb-11 pt-14">
-        <Logo size={34} />
-        <h1 className="mt-6 max-w-[280px] text-[28px] font-bold leading-tight text-white">
+      <div className="relative overflow-hidden bg-navy px-7 pb-11 pt-8">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.png" alt="Ugenstipper.dk" className="mx-auto block h-48 w-48" />
+        <h1 className="mt-8 max-w-[280px] text-[28px] font-bold leading-tight text-white">
           Tip Superligaen med vennerne – helt gratis
         </h1>
         <p className="mt-3 max-w-[300px] text-[14.5px] leading-relaxed text-[#AAB4C6]">
