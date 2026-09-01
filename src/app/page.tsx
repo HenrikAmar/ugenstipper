@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
 const ANNOUNCEMENTS: { title: string; text: string }[] = [
   {
     title: "Nyt fra Ugenstipper",
-    text: "Godt du er med! Vi arbejder i øjeblikket på at finde gode præmier til jer, og på at kunne skyde den allerførste officielle turnering i gang snarest - så følg med her på forsiden, så du ikke går glip af noget, når det sker.",
+    text: "Fedt du er med! Vi arbejder i øjeblikket på at finde lækre præmier til jer, og på at kunne skyde den allerførste officielle turnering i gang snarest - så følg med her på forsiden, så du ikke går glip af noget, når det sker.",
   },
 ];
 
