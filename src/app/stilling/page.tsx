@@ -56,7 +56,12 @@ export default async function StillingPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const visning = searchParams.visning === "runde" ? "runde" : "samlet";
+  const visning =
+    searchParams.visning === "runde"
+      ? "runde"
+      : searchParams.visning === "forrige"
+      ? "forrige"
+      : "samlet";
 
   const [{ data: profiles }, { data: roundsData }, { data: tips }, { data: inviteTop }] =
     await Promise.all([
@@ -89,6 +94,16 @@ export default async function StillingPage({
   const selectedBonusSeason = searchParams.bonusSaeson ?? defaultBonusSeason;
   const isViewingActiveSeason = selectedLigaSeason === activeLigaSeason;
 
+  // Runden lige før den aktuelle - bruges til "Forrige runde"-fanen. Findes
+  // kun, hvis der rent faktisk har været en runde før denne (fx ikke ved
+  // Runde 1).
+  const previousRound =
+    currentRound
+      ? ligaRounds.find(
+          (r) => r.season === currentRound.season && r.number === currentRound.number - 1
+        ) ?? null
+      : null;
+
   // Point tælles adskilt: den rigtige stilling (liga, pr. valgt sæson) og
   // bonusrunde-stillingen (pr. valgt bonus-sæson) - de blandes aldrig sammen.
   const totals = new Map<string, number>();
@@ -107,6 +122,13 @@ export default async function StillingPage({
 
     if (roundInfo.season !== selectedLigaSeason) continue;
     if (visning === "runde" && isViewingActiveSeason && tip.matches?.round_id !== currentRound?.id) {
+      continue;
+    }
+    if (
+      visning === "forrige" &&
+      isViewingActiveSeason &&
+      tip.matches?.round_id !== previousRound?.id
+    ) {
       continue;
     }
     totals.set(tip.user_id, (totals.get(tip.user_id) ?? 0) + tip.points);
@@ -181,6 +203,15 @@ export default async function StillingPage({
 
       {isViewingActiveSeason && (
         <div className="flex gap-2 px-5 py-3.5">
+          {previousRound && (
+            <Link href="/stilling?visning=forrige"
+              className={`pill ${
+                visning === "forrige" ? "bg-navy text-white" : "border border-border text-text-muted"
+              }`}
+            >
+              Forrige runde
+            </Link>
+          )}
           <Link href="/stilling?visning=samlet"
             className={`pill ${
               visning === "samlet" ? "bg-navy text-white" : "border border-border text-text-muted"
