@@ -31,10 +31,23 @@ export async function getTippableRounds(
 ): Promise<Round[]> {
   // De to opslag herunder er uafhængige af hinanden - kør dem samtidig i
   // stedet for efter hinanden, det gør siden mærkbart hurtigere at åbne.
-  const [{ data: current }, { data: bonusRoundsRaw }] = await Promise.all([
+  const [
+    { data: current, error: currentError },
+    { data: bonusRoundsRaw, error: bonusError },
+  ] = await Promise.all([
     supabase.from("rounds").select("*").eq("is_current", true).maybeSingle(),
     supabase.from("rounds").select("*").eq("kind", "bonus"),
   ]);
+
+  // Skelner mellem "der er reelt ingen aktiv runde sat op" og "databasen
+  // svarede ikke lige nu" (fx når den skal vågne op igen efter en periode
+  // uden besøgende på gratis-planen). Uden dette tjek viste siden fejlagtigt
+  // "Ingen aktiv runde endnu", selvom admin faktisk HAVDE sat en runde som
+  // aktuel - se fejlbeskeden i src/app/tip/page.tsx, der fanger denne fejl.
+  if (currentError || bonusError) {
+    throw new Error("Kunne ikke hente runder fra databasen");
+  }
+
   const bonusRounds: Round[] = bonusRoundsRaw ?? [];
 
   if (!current) {

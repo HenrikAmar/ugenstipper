@@ -20,12 +20,31 @@ export default async function TipPage({
 
   // De to opslag herunder er uafhængige af hinanden - kør dem samtidig i
   // stedet for efter hinanden, det gør siden mærkbart hurtigere at åbne.
+  // getTippableRounds fanges særskilt (i stedet for at lade Promise.all
+  // fejle helt), så vi kan vise en anden besked, hvis det er databasen der
+  // ikke svarer, end hvis der reelt bare ikke er sat en runde op.
   const [
     {
       data: { user },
     },
     rounds,
-  ] = await Promise.all([supabase.auth.getUser(), getTippableRounds(supabase)]);
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    getTippableRounds(supabase).catch(() => null),
+  ]);
+
+  if (rounds === null) {
+    return (
+      <div className="mx-auto max-w-[420px] px-6 py-16 text-center">
+        <h1 className="text-lg font-bold">Kunne ikke hente kampene</h1>
+        <p className="mt-2 text-sm text-text-muted">
+          Databasen svarede ikke lige nu - det sker typisk hvis den lige skal
+          "vågne" efter en periode uden besøgende. Prøv at genindlæse siden om
+          et lille øjeblik.
+        </p>
+      </div>
+    );
+  }
 
   if (rounds.length === 0) {
     return (
