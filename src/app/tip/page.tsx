@@ -39,7 +39,7 @@ export default async function TipPage({
         <h1 className="text-lg font-bold">Kunne ikke hente kampene</h1>
         <p className="mt-2 text-sm text-text-muted">
           Databasen svarede ikke lige nu - det sker typisk hvis den lige skal
-          "vågne" efter en periode uden besøgende. Prøv at genindlæse siden om
+          vågne op efter en periode uden besøgende. Prøv at genindlæse siden om
           et lille øjeblik.
         </p>
       </div>
