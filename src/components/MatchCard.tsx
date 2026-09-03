@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from "react";
 import { TeamBadge } from "@/components/TeamBadge";
-import { saveTip } from "@/app/tip/actions";
 import type { Match, Tip } from "@/lib/types";
 
 // Viser altid dansk tid (Europe/Copenhagen), uanset hvor i verden man selv sidder,
@@ -31,33 +29,18 @@ function formatKickoff(iso: string) {
 export function MatchCard({
   match,
   existingTip,
+  value,
+  onChange,
 }: {
   match: Match;
   existingTip: Tip | undefined;
+  // Styres af den samlede formular (TipRoundForm) - denne kortkomponent har
+  // ikke længere sin egen "gem"-knap eller egen tilstand for tippet.
+  value: { home: string; away: string };
+  onChange: (home: string, away: string) => void;
 }) {
   const locked = new Date(match.kickoff_at) <= new Date();
   const finished = match.result_home !== null && match.result_away !== null;
-
-  const [tipHome, setTipHome] = useState(existingTip?.tip_home?.toString() ?? "");
-  const [tipAway, setTipAway] = useState(existingTip?.tip_away?.toString() ?? "");
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(Boolean(existingTip));
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleSave() {
-    const h = parseInt(tipHome, 10);
-    const a = parseInt(tipAway, 10);
-    if (Number.isNaN(h) || Number.isNaN(a)) {
-      setError("Udfyld begge felter.");
-      return;
-    }
-    setSaving(true);
-    setError(null);
-    const result = await saveTip(match.id, h, a);
-    setSaving(false);
-    if (result.error) setError(result.error);
-    else setSaved(true);
-  }
 
   if (locked) {
     // "Dit tip"-linjen og "kampen er i gang"-linjen skal fremstå lige så
@@ -105,6 +88,14 @@ export function MatchCard({
     );
   }
 
+  // Er det der står i felterne lige nu allerede gemt i databasen? Bruges kun
+  // til det lille "✓ Gemt"-praj - selve gemningen sker samlet for hele
+  // runden via "Gem runde"-knappen nederst på siden.
+  const savedAsIs =
+    Boolean(existingTip) &&
+    value.home === (existingTip?.tip_home?.toString() ?? "") &&
+    value.away === (existingTip?.tip_away?.toString() ?? "");
+
   return (
     <div className="card flex flex-col gap-2.5 rounded-card p-4 shadow-sm">
       <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
@@ -115,21 +106,15 @@ export function MatchCard({
         <div className="flex items-center gap-1.5">
           <input
             inputMode="numeric"
-            value={tipHome}
-            onChange={(e) => {
-              setTipHome(e.target.value.replace(/[^0-9]/g, ""));
-              setSaved(false);
-            }}
+            value={value.home}
+            onChange={(e) => onChange(e.target.value.replace(/[^0-9]/g, ""), value.away)}
             className="h-[34px] w-[34px] rounded-lg border border-accent-2 bg-accent-tint text-center font-heading text-[15px] font-bold text-accent"
           />
           <span className="font-bold text-[#B7BEC9]">–</span>
           <input
             inputMode="numeric"
-            value={tipAway}
-            onChange={(e) => {
-              setTipAway(e.target.value.replace(/[^0-9]/g, ""));
-              setSaved(false);
-            }}
+            value={value.away}
+            onChange={(e) => onChange(value.home, e.target.value.replace(/[^0-9]/g, ""))}
             className="h-[34px] w-[34px] rounded-lg border border-accent-2 bg-accent-tint text-center font-heading text-[15px] font-bold text-accent"
           />
         </div>
@@ -143,28 +128,7 @@ export function MatchCard({
         <span className="text-sm font-semibold text-text-muted">
           {formatKickoff(match.kickoff_at)}
         </span>
-
-        {error ? (
-          <span className="text-[11.5px] font-semibold text-danger">{error}</span>
-        ) : saved ? (
-          <div className="flex items-center gap-2.5">
-            <span className="text-[11.5px] font-bold text-accent">✓ Gemt</span>
-            <button
-              onClick={() => setSaved(false)}
-              className="text-[11.5px] font-semibold text-text-muted underline underline-offset-2"
-            >
-              Ret tip
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="rounded-lg bg-accent-2 px-3 py-1.5 text-[12px] font-bold text-white disabled:opacity-60"
-          >
-            {saving ? "Gemmer …" : "Gem tip"}
-          </button>
-        )}
+        {savedAsIs && <span className="text-[11.5px] font-bold text-accent">✓ Gemt</span>}
       </div>
     </div>
   );

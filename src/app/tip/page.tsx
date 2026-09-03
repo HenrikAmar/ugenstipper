@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getTippableRounds, roundLabel } from "@/lib/rounds";
 import { RoundTabs } from "@/components/RoundTabs";
-import { MatchCard } from "@/components/MatchCard";
+import { TipRoundForm } from "@/components/TipRoundForm";
 import { BottomNav } from "@/components/BottomNav";
 import { AppHeader } from "@/components/AppHeader";
 import type { Match, Tip } from "@/lib/types";
@@ -76,9 +76,12 @@ export default async function TipPage({
     .eq("user_id", user?.id ?? "")
     .in("match_id", matchList.map((m) => m.id));
 
-  const tipsByMatch = new Map<string, Tip>((tips ?? []).map((t) => [t.match_id, t]));
+  // Almindeligt objekt i stedet for en Map - så det kan sendes videre til
+  // TipRoundForm (en klient-komponent, som ikke kan modtage en Map som prop).
+  const tipsByMatch: Record<string, Tip> = {};
+  for (const t of tips ?? []) tipsByMatch[t.match_id] = t;
 
-  const tippedCount = matchList.filter((m) => tipsByMatch.has(m.id)).length;
+  const tippedCount = matchList.filter((m) => Boolean(tipsByMatch[m.id])).length;
 
   return (
     <div className="mx-auto min-h-screen max-w-[420px] bg-bg pb-24">
@@ -94,14 +97,11 @@ export default async function TipPage({
         </span>
       </div>
 
-      <div className="flex flex-col gap-3 px-5">
-        {matchList.length === 0 && (
-          <p className="text-sm text-text-muted">Ingen kampe oprettet i denne runde endnu.</p>
-        )}
-        {matchList.map((match) => (
-          <MatchCard key={match.id} match={match} existingTip={tipsByMatch.get(match.id)} />
-        ))}
-      </div>
+      {/* key={activeRound.id} er vigtig: uden den bliver komponenten IKKE
+          nulstillet, når man skifter runde via fanerne ovenfor (kun
+          props opdateres) - så kan felterne fejlagtigt vise forrige
+          rundes (eller tomme) værdier for den nye runde. */}
+      <TipRoundForm key={activeRound.id} matches={matchList} tipsByMatch={tipsByMatch} />
 
       <div className="px-5 pt-5">
         <Link href="/" className="block overflow-hidden rounded-xl">

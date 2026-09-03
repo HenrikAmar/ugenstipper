@@ -42,8 +42,9 @@ export default function ReglerPage() {
             En kamp giver altså enten 0, 1, 2 eller 5 point.
           </p>
           <p className="mt-2.5 text-[13.5px] leading-relaxed text-text-muted">
-            Du kan tippe på den aktuelle runde samt de næste 2 runder - og du kan ændre dine tips
-            helt frem til, at den enkelte kamp fløjtes i gang.
+            Du kan tippe på den aktuelle runde samt de næste 2 runder. Du kan altid ændre dit tip,
+            helt frem til lige inden kampstart - du taster blot dit nye tip og klikker på
+            &bdquo;Gem runde&rdquo;.
           </p>
         </section>
 
