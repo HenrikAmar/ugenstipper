@@ -8,7 +8,6 @@ import {
   deleteMatch,
   deleteRound,
 } from "./actions";
-import { LogoMark } from "@/components/Logo";
 import type { Match, Round } from "@/lib/types";
 import { utcToDanishLocalInputValue } from "@/lib/time";
 import { SUPERLIGA_TEAMS } from "@/lib/clubColors";
@@ -67,7 +66,8 @@ export default async function AdminKampePage({
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <LogoMark size={26} />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="" className="h-8 w-8" />
             <h1 className="text-2xl font-extrabold">Kampe</h1>
           </div>
           <p className="mt-1 text-sm text-text-muted">
@@ -80,6 +80,9 @@ export default async function AdminKampePage({
           </span>
           <a href="/admin/statistik" className="text-sm font-semibold text-accent">
             Statistik →
+          </a>
+          <a href="/admin/nyheder" className="text-sm font-semibold text-accent">
+            Nyheder →
           </a>
           <a href="/tip" className="text-sm font-semibold text-text-muted">
             ← Tilbage til Ugenstipper

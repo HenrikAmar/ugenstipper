@@ -29,6 +29,15 @@ export interface Match {
   created_at: string;
 }
 
+export interface Announcement {
+  id: string;
+  title: string;
+  body: string;
+  image_url: string | null;
+  image_caption: string | null;
+  created_at: string;
+}
+
 export interface Tip {
   id: string;
   user_id: string;

@@ -1,5 +1,4 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { LogoMark } from "@/components/Logo";
 import { roundLabel } from "@/lib/rounds";
 
 // Admin-statistik skal altid være frisk - må ikke caches.
@@ -222,7 +221,8 @@ export default async function AdminStatistikPage() {
     <div className="mx-auto max-w-4xl px-6 py-10">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <LogoMark size={26} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="" className="h-8 w-8" />
           <h1 className="text-2xl font-extrabold">Statistik</h1>
         </div>
         <a href="/admin/kampe" className="text-sm font-semibold text-accent">

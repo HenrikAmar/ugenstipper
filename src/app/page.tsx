@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { AppHeader } from "@/components/AppHeader";
 import { BottomNav } from "@/components/BottomNav";
 import { PrefetchTip } from "@/components/PrefetchTip";
+import type { Announcement } from "@/lib/types";
 
 // Forsiden. Viser noget forskelligt afhængig af om man er logget ind:
 // - Ikke logget ind: en salgs-/præsentationsside, der forklarer konkurrencen
@@ -15,15 +16,8 @@ import { PrefetchTip } from "@/components/PrefetchTip";
 // Data (om man er logget ind, nyheder) kan ændre sig - må ikke caches.
 export const dynamic = "force-dynamic";
 
-// Nyheder/beskeder til den indloggede forside - redigér denne liste for at
-// opdatere, hvad brugerne ser, når de logger ind eller trykker "Hjem" i
-// bunden. Nyeste øverst; den øverste får automatisk et lille "NYT"-mærke.
-const ANNOUNCEMENTS: { title: string; text: string }[] = [
-  {
-    title: "Nyt fra Ugenstipper",
-    text: "Fedt du er med! Vi arbejder i øjeblikket på at finde lækre præmier til jer, og på at kunne skyde den allerførste officielle turnering i gang snarest - så følg med her på forsiden, så du ikke går glip af noget, når det sker.",
-  },
-];
+// Nyheder skrives nu af admin på /admin/nyheder og hentes live herunder -
+// ingen kode skal ændres for at opdatere, hvad brugerne ser på forsiden.
 
 const STEPS = [
   {
@@ -69,33 +63,58 @@ export default async function HomePage({
   // stedet for salgsteksten - man skal ikke se den igen, men skal heller
   // ikke sendes direkte til /tip uden om denne side.
   if (user) {
+    const { data: announcements } = await supabase
+      .from("announcements")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    const announcementList: Announcement[] = announcements ?? [];
+
     return (
       <div className="mx-auto min-h-screen max-w-[420px] bg-bg pb-24">
         <PrefetchTip />
         <AppHeader title="Ugenstipper.dk" />
 
         <div className="flex flex-col gap-3 px-5 pt-3">
-          {ANNOUNCEMENTS.map((announcement, i) => (
-            <div key={announcement.title} className="card rounded-xl p-4">
-              {i === 0 && (
+          {announcementList.map((announcement, i) => (
+            <div key={announcement.id} className="card overflow-hidden rounded-xl">
+              {i === 0 && !announcement.image_url && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src="/logo.png"
                   alt="Ugenstipper.dk"
-                  className="mx-auto mb-3 block h-48 w-48"
+                  className="mx-auto mb-3 mt-4 block h-48 w-48"
                 />
               )}
-              <div className="flex items-center gap-2">
-                {i === 0 && (
-                  <span className="rounded-full bg-accent-tint px-2 py-0.5 text-[10px] font-bold text-accent">
-                    NYT
-                  </span>
-                )}
-                <h2 className="text-[15px] font-bold">{announcement.title}</h2>
+              <div className="p-4">
+                <div className="flex items-center gap-2">
+                  {i === 0 && (
+                    <span className="rounded-full bg-accent-tint px-2 py-0.5 text-[10px] font-bold text-accent">
+                      NYT
+                    </span>
+                  )}
+                  <h2 className="text-[15px] font-bold">{announcement.title}</h2>
+                </div>
+                <p className="mt-1.5 whitespace-pre-line text-[13.5px] leading-relaxed text-text-muted">
+                  {announcement.body}
+                </p>
               </div>
-              <p className="mt-1.5 text-[13.5px] leading-relaxed text-text-muted">
-                {announcement.text}
-              </p>
+              {announcement.image_url && (
+                <div>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={announcement.image_url}
+                    alt={announcement.title}
+                    className="aspect-[4/3] w-full object-cover"
+                  />
+                  {announcement.image_caption && (
+                    <p className="px-4 py-2.5 text-[12px] italic text-text-muted">
+                      {announcement.image_caption}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
