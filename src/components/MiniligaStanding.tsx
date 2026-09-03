@@ -40,7 +40,7 @@ export function MiniligaStanding({
                 <div className="w-5 text-center font-heading text-sm font-bold text-text-muted">
                   {row.rank}
                 </div>
-                <TeamBadge team={row.display_name} size={34} />
+                <TeamBadge team={row.display_name} size={34} colorOverride={row.avatar_color} />
                 <div className="flex-1 text-sm font-bold">
                   {row.display_name}
                   {isMe && (

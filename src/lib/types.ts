@@ -4,6 +4,9 @@ export interface Profile {
   id: string;
   display_name: string;
   role: Role;
+  // Selvvalgt avatar-farve (en af de 8 faste farver) - null hvis brugeren
+  // ikke selv har valgt en, og bare får den automatisk udregnede farve.
+  avatar_color: string | null;
   created_at: string;
 }
 

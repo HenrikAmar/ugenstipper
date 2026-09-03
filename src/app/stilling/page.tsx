@@ -65,7 +65,7 @@ export default async function StillingPage({
 
   const [{ data: profiles }, { data: roundsData }, { data: tips }, { data: inviteTop }] =
     await Promise.all([
-      supabase.from("profiles").select("id, display_name"),
+      supabase.from("profiles").select("id, display_name, avatar_color"),
       supabase.from("rounds").select("id, number, season, kind, is_current, created_at"),
       supabase.from("tips").select("user_id, points, matches(round_id, rounds(kind, season))"),
       supabase

@@ -5,6 +5,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { ChangePasswordForm } from "@/components/ChangePasswordForm";
 import { InviteFriend } from "@/components/InviteFriend";
 import { MiniligaCard } from "@/components/MiniligaCard";
+import { AvatarColorPicker } from "@/components/AvatarColorPicker";
 import { redirect } from "next/navigation";
 
 // Rollen (admin/user) kan ændre sig i databasen - må ikke caches.
@@ -26,7 +27,7 @@ export default async function ProfilPage() {
   const [{ data: profile }, { data: inviteRow }, { data: miniliga }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("display_name, role")
+      .select("display_name, role, avatar_color")
       .eq("id", user?.id ?? "")
       .maybeSingle(),
     supabase
@@ -55,7 +56,11 @@ export default async function ProfilPage() {
       <AppHeader title="Profil" />
 
       <div className="card mx-5 mt-4 flex items-center gap-3.5 rounded-xl p-4">
-        <TeamBadge team={profile?.display_name ?? "?"} size={44} />
+        <TeamBadge
+          team={profile?.display_name ?? "?"}
+          size={44}
+          colorOverride={profile?.avatar_color}
+        />
         <div>
           <div className="text-[15px] font-bold">{profile?.display_name}</div>
           <div className="text-[12.5px] text-text-muted">{user?.email}</div>
@@ -71,6 +76,8 @@ export default async function ProfilPage() {
       {user && <InviteFriend qualifiedInvites={inviteRow?.qualified_invites ?? 0} />}
 
       {user && <MiniligaCard leagueName={miniligaName} hasPassword={miniligaHasPassword} />}
+
+      <AvatarColorPicker currentColor={profile?.avatar_color ?? null} />
 
       <ChangePasswordForm />
 

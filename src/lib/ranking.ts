@@ -2,6 +2,7 @@ export interface RankRow {
   id: string;
   display_name: string;
   points: number;
+  avatar_color?: string | null;
 }
 
 export interface StickyRow extends RankRow {
