@@ -8,8 +8,8 @@ function escapeHtml(text: string) {
     .replace(/"/g, "&quot;");
 }
 
-// Sender en besked fra kontaktformularen til Henrik via Resend - ingen
-// afhængighed af at info@ugenstipper.dk rent faktisk modtager mail nogen steder.
+// Sender en besked fra kontaktformularen via Resend, direkte til den rigtige
+// info@ugenstipper.dk-postkasse (hostet hos one.com).
 export async function sendContactMessage(input: {
   subject: string;
   fromEmail: string;
@@ -32,7 +32,7 @@ export async function sendContactMessage(input: {
       },
       body: JSON.stringify({
         from: "Ugenstipper <info@ugenstipper.dk>",
-        to: ["henrikwaarst+ut@gmail.com"],
+        to: ["info@ugenstipper.dk"],
         reply_to: fromEmail,
         subject: `Kontakt fra Ugenstipper: ${subject}`,
         html: `
