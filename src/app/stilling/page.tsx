@@ -46,6 +46,17 @@ function seasonsNewestFirst(rounds: RoundLite[]): string[] {
     .map(([season]) => season);
 }
 
+// Genforsøger én gang, hvis en forespørgsel fejler - fanger korte,
+// forbigående forbindelsesglimt til Supabase, som ellers ville få stillingen
+// til fejlagtigt at se tom ud, selvom der reelt er point.
+async function withRetry<T>(
+  run: () => PromiseLike<{ data: T; error: { message: string } | null }>
+): Promise<{ data: T; error: { message: string } | null }> {
+  const first = await run();
+  if (!first.error) return first;
+  return run();
+}
+
 export default async function StillingPage({
   searchParams,
 }: {
@@ -63,18 +74,40 @@ export default async function StillingPage({
       ? "forrige"
       : "samlet";
 
-  const [{ data: profiles }, { data: roundsData }, { data: tips }, { data: inviteTop }] =
-    await Promise.all([
-      supabase.from("profiles").select("id, display_name, avatar_color"),
-      supabase.from("rounds").select("id, number, season, kind, is_current, created_at"),
-      supabase.from("tips").select("user_id, points, matches(round_id, rounds(kind, season))"),
-      supabase
-        .from("invite_leaderboard")
-        .select("user_id, display_name, qualified_invites")
-        .gt("qualified_invites", 0)
-        .order("qualified_invites", { ascending: false })
-        .limit(3),
-    ]);
+  const [
+    { data: profiles, error: profilesError },
+    { data: roundsData, error: roundsError },
+    { data: tips, error: tipsError },
+    { data: inviteTop },
+  ] = await Promise.all([
+    withRetry(() => supabase.from("profiles").select("id, display_name, avatar_color")),
+    withRetry(() =>
+      supabase.from("rounds").select("id, number, season, kind, is_current, created_at")
+    ),
+    withRetry(() =>
+      supabase.from("tips").select("user_id, points, matches(round_id, rounds(kind, season))")
+    ),
+    supabase
+      .from("invite_leaderboard")
+      .select("user_id, display_name, qualified_invites")
+      .gt("qualified_invites", 0)
+      .order("qualified_invites", { ascending: false })
+      .limit(3),
+  ]);
+
+  // Hvis en af de centrale forespørgsler fejler (fx en midlertidig
+  // forbindelsesfejl til Supabase), skal siden IKKE se ud som om der bare
+  // ikke er nogen point endnu - det er misvisende og skjuler den reelle
+  // fejl. Vi logger detaljerne (ses i Vercel-loggen) og viser i stedet en
+  // tydelig fejlbesked.
+  const loadError = profilesError ?? roundsError ?? tipsError ?? null;
+  if (loadError) {
+    console.error("[/stilling] Kunne ikke hente data:", {
+      profilesError,
+      roundsError,
+      tipsError,
+    });
+  }
 
   const inviteRanking = (inviteTop ?? []) as InviteRow[];
   const tipRows = (tips ?? []) as unknown as TipRow[];
@@ -231,7 +264,12 @@ export default async function StillingPage({
 
       <div className={isViewingActiveSeason ? "px-5" : "px-5 pt-4"}>
         <StandingList ranking={ranking} userId={user?.id} expandLabel="Udvid stillingen" />
-        {ranking.length === 0 && (
+        {loadError && (
+          <p className="py-8 text-center text-sm font-semibold text-danger">
+            Kunne ikke hente stillingen lige nu. Prøv at genindlæse siden om lidt.
+          </p>
+        )}
+        {!loadError && ranking.length === 0 && (
           <p className="py-8 text-center text-sm text-text-muted">
             Ingen point endnu denne sæson.
           </p>
