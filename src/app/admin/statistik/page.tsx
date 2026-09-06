@@ -49,15 +49,15 @@ export default async function AdminStatistikPage() {
   const admin = createAdminClient();
 
   const [
-    { data: profilesRaw },
-    { data: roundsRaw },
-    { data: matchesRaw },
-    { data: tipsRaw },
-    { count: miniLeagueCount },
-    { count: miniLeagueMemberCount },
-    { data: inviteRowsRaw },
-    { count: pageviewsAllTime },
-    { data: visitsRaw },
+    { data: profilesRaw, error: profilesError },
+    { data: roundsRaw, error: roundsError },
+    { data: matchesRaw, error: matchesError },
+    { data: tipsRaw, error: tipsError },
+    { count: miniLeagueCount, error: miniLeagueError },
+    { count: miniLeagueMemberCount, error: miniLeagueMemberError },
+    { data: inviteRowsRaw, error: inviteError },
+    { count: pageviewsAllTime, error: pageviewsError },
+    { data: visitsRaw, error: visitsError },
   ] = await Promise.all([
     admin.from("profiles").select("id, display_name, created_at, invited_by"),
     admin.from("rounds").select("id, season, number, kind"),
@@ -75,6 +75,30 @@ export default async function AdminStatistikPage() {
       .select("created_at, path")
       .gte("created_at", new Date(Date.now() - 30 * DAY_MS).toISOString()),
   ]);
+
+  // Saml eventuelle fejl fra de forespørgsler ovenfor. Uden dette ville en
+  // fejlet forespørgsel bare stille og roligt blive vist som "0" (fx 0
+  // mini-ligaer), som om der reelt ikke var nogen data - meget misvisende på
+  // en statistikside. Her er det en admin-side, så vi kan trygt vise selve
+  // fejlteksten direkte, i stedet for at gætte.
+  const queryErrors = [
+    { label: "Profiler", error: profilesError },
+    { label: "Runder", error: roundsError },
+    { label: "Kampe", error: matchesError },
+    { label: "Tips", error: tipsError },
+    { label: "Mini-ligaer", error: miniLeagueError },
+    { label: "Mini-liga-medlemmer", error: miniLeagueMemberError },
+    { label: "Invitationer", error: inviteError },
+    { label: "Sidevisninger (total)", error: pageviewsError },
+    { label: "Sidevisninger (30 dage)", error: visitsError },
+  ].filter((e) => e.error);
+
+  if (queryErrors.length > 0) {
+    console.error(
+      "[/admin/statistik] Fejl i en eller flere forespørgsler:",
+      queryErrors.map((e) => ({ label: e.label, message: e.error?.message }))
+    );
+  }
 
   const profiles: ProfileRow[] = profilesRaw ?? [];
   const rounds: RoundRow[] = roundsRaw ?? [];
@@ -232,6 +256,21 @@ export default async function AdminStatistikPage() {
       <p className="mt-1 text-sm text-text-muted">
         Overblik over brugere, vindere og besøg på Ugenstipper.
       </p>
+
+      {queryErrors.length > 0 && (
+        <div className="mt-4 rounded-xl border border-danger bg-red-50 p-3.5">
+          <div className="text-[13px] font-bold text-danger">
+            Nogle tal herunder kunne ikke hentes korrekt:
+          </div>
+          <ul className="mt-1 list-disc pl-5 text-[12.5px] text-danger">
+            {queryErrors.map((e) => (
+              <li key={e.label}>
+                {e.label}: {e.error?.message ?? "ukendt fejl"}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* ---------- Brugere ---------- */}
       <h2 className="mt-8 text-sm font-bold uppercase tracking-wide text-text-muted">Brugere</h2>
