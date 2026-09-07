@@ -172,71 +172,76 @@ export default async function AdminKampePage({
       {activeRound && (
         <>
           <form
-            key={`${activeRound.id}-${matchList.length}`}
             action={createMatch.bind(null, activeRound.id)}
             className="card mt-6 flex flex-wrap items-end gap-3 rounded-xl p-4"
           >
-            {activeRound.kind === "liga" ? (
-              <>
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-text-muted">Hjemmehold</label>
-                  <select
-                    name="home_team"
-                    required
-                    defaultValue=""
-                    className="h-10 w-44 rounded-lg border border-border px-3 text-sm"
-                  >
-                    <option value="" disabled>
-                      Vælg hold
-                    </option>
-                    {SUPERLIGA_TEAMS.map((team) => (
-                      <option key={team} value={team}>
-                        {team}
+            {/* Kun holdene skal nulstilles efter oprettelse - key'en tvinger
+                React til at genskabe DEM fra bunden. Kampstart-feltet ligger
+                bevidst UDENFOR denne key, så det holder sin værdi, når man
+                opretter flere kampe med samme kampstart-tidspunkt i træk. */}
+            <div key={`${activeRound.id}-${matchList.length}`} className="contents">
+              {activeRound.kind === "liga" ? (
+                <>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-semibold text-text-muted">Hjemmehold</label>
+                    <select
+                      name="home_team"
+                      required
+                      defaultValue=""
+                      className="h-10 w-44 rounded-lg border border-border px-3 text-sm"
+                    >
+                      <option value="" disabled>
+                        Vælg hold
                       </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-text-muted">Udehold</label>
-                  <select
-                    name="away_team"
-                    required
-                    defaultValue=""
-                    className="h-10 w-44 rounded-lg border border-border px-3 text-sm"
-                  >
-                    <option value="" disabled>
-                      Vælg hold
-                    </option>
-                    {SUPERLIGA_TEAMS.map((team) => (
-                      <option key={team} value={team}>
-                        {team}
+                      {SUPERLIGA_TEAMS.map((team) => (
+                        <option key={team} value={team}>
+                          {team}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-semibold text-text-muted">Udehold</label>
+                    <select
+                      name="away_team"
+                      required
+                      defaultValue=""
+                      className="h-10 w-44 rounded-lg border border-border px-3 text-sm"
+                    >
+                      <option value="" disabled>
+                        Vælg hold
                       </option>
-                    ))}
-                  </select>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-text-muted">Hjemmehold</label>
-                  <input
-                    name="home_team"
-                    required
-                    placeholder="fx FC København"
-                    className="h-10 w-44 rounded-lg border border-border px-3 text-sm"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-text-muted">Udehold</label>
-                  <input
-                    name="away_team"
-                    required
-                    placeholder="fx Real Madrid"
-                    className="h-10 w-44 rounded-lg border border-border px-3 text-sm"
-                  />
-                </div>
-              </>
-            )}
+                      {SUPERLIGA_TEAMS.map((team) => (
+                        <option key={team} value={team}>
+                          {team}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-semibold text-text-muted">Hjemmehold</label>
+                    <input
+                      name="home_team"
+                      required
+                      placeholder="fx FC København"
+                      className="h-10 w-44 rounded-lg border border-border px-3 text-sm"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-semibold text-text-muted">Udehold</label>
+                    <input
+                      name="away_team"
+                      required
+                      placeholder="fx Real Madrid"
+                      className="h-10 w-44 rounded-lg border border-border px-3 text-sm"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs font-semibold text-text-muted">Kampstart</label>
               <input
