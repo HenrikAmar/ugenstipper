@@ -172,6 +172,7 @@ export default async function AdminKampePage({
       {activeRound && (
         <>
           <form
+            key={`${activeRound.id}-${matchList.length}`}
             action={createMatch.bind(null, activeRound.id)}
             className="card mt-6 flex flex-wrap items-end gap-3 rounded-xl p-4"
           >
@@ -246,7 +247,7 @@ export default async function AdminKampePage({
               />
             </div>
             <button className="h-10 rounded-lg bg-accent-2 px-4 text-sm font-bold text-white">
-              + Ny kamp
+              Opret kamp
             </button>
           </form>
 

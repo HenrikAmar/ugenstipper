@@ -30,7 +30,10 @@ export default async function TipPage({
     rounds,
   ] = await Promise.all([
     supabase.auth.getUser(),
-    getTippableRounds(supabase).catch(() => null),
+    getTippableRounds(supabase).catch((err) => {
+      console.error("[/tip] getTippableRounds fejlede:", err);
+      return null;
+    }),
   ]);
 
   if (rounds === null) {
@@ -38,9 +41,8 @@ export default async function TipPage({
       <div className="mx-auto max-w-[420px] px-6 py-16 text-center">
         <h1 className="text-lg font-bold">Kunne ikke hente kampene</h1>
         <p className="mt-2 text-sm text-text-muted">
-          Databasen svarede ikke lige nu - det sker typisk hvis den lige skal
-          vågne op efter en periode uden besøgende. Prøv at genindlæse siden om
-          et lille øjeblik.
+          Der opstod en midlertidig fejl ved hentning af kampene. Prøv at
+          genindlæse siden om et lille øjeblik.
         </p>
       </div>
     );

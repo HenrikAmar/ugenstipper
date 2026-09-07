@@ -45,6 +45,14 @@ export async function getTippableRounds(
   // "Ingen aktiv runde endnu", selvom admin faktisk HAVDE sat en runde som
   // aktuel - se fejlbeskeden i src/app/tip/page.tsx, der fanger denne fejl.
   if (currentError || bonusError) {
+    // Log den RIGTIGE fejl (ses i Vercel-loggen), så vi kan se om det reelt
+    // er databasen der lige er vågnet op igen, eller noget helt andet (fx en
+    // manglende adgangsrettighed) - i stedet for at gætte ud fra en generisk
+    // besked til brugeren.
+    console.error("[getTippableRounds] Kunne ikke hente runder:", {
+      currentError,
+      bonusError,
+    });
     throw new Error("Kunne ikke hente runder fra databasen");
   }
 
