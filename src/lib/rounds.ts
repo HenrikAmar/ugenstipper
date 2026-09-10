@@ -26,27 +26,69 @@ const GRACE_PERIOD_MS = 24 * 60 * 60 * 1000; // et døgn
  * døgn efter deres sidste kamp, i stedet for i samme sekund den er spillet.
  * (Håndhæves også i databasen via Row Level Security - se supabase/schema.sql.)
  */
+// Kendt, forbigående Supabase-infrastrukturfejl: PostgREST afviser af og
+// til en helt frisk, gyldig token med "JWT issued at future" (PGRST303),
+// fordi urene mellem Supabase's login-server og database-server et kort
+// øjeblik ikke er helt i sync. Det er ikke noget i vores kode eller
+// database-rettigheder - det retter typisk sig selv på under et sekund,
+// hvilket er derfor et almindeligt genindlæs (F5) plejer at virke. Vi
+// forsøger derfor automatisk igen et par gange, før vi viser brugeren en
+// fejlbesked.
+function isJwtClockSkewError(error: { code?: string; message?: string } | null) {
+  if (!error) return false;
+  return (
+    error.code === "PGRST303" ||
+    (error.message ?? "").toLowerCase().includes("jwt issued at future")
+  );
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function getTippableRounds(
   supabase: SupabaseClient
 ): Promise<Round[]> {
-  // De to opslag herunder er uafhængige af hinanden - kør dem samtidig i
-  // stedet for efter hinanden, det gør siden mærkbart hurtigere at åbne.
-  const [
-    { data: current, error: currentError },
-    { data: bonusRoundsRaw, error: bonusError },
-  ] = await Promise.all([
-    supabase.from("rounds").select("*").eq("is_current", true).maybeSingle(),
-    supabase.from("rounds").select("*").eq("kind", "bonus"),
-  ]);
+  let current: Round | null = null;
+  let bonusRoundsRaw: Round[] | null = null;
+  let currentError: { code?: string; message?: string } | null = null;
+  let bonusError: { code?: string; message?: string } | null = null;
+
+  // Op til 3 forsøg i alt - kun ekstra forsøg hvis fejlen ligner den kendte,
+  // forbigående ur-fejl ovenfor. Alle andre fejl (fx manglende
+  // adgangsrettighed) fejler med det samme, som før.
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    // De to opslag herunder er uafhængige af hinanden - kør dem samtidig i
+    // stedet for efter hinanden, det gør siden mærkbart hurtigere at åbne.
+    const [current_, bonus_] = await Promise.all([
+      supabase.from("rounds").select("*").eq("is_current", true).maybeSingle(),
+      supabase.from("rounds").select("*").eq("kind", "bonus"),
+    ]);
+    current = current_.data;
+    bonusRoundsRaw = bonus_.data;
+    currentError = current_.error;
+    bonusError = bonus_.error;
+
+    const shouldRetry =
+      (isJwtClockSkewError(currentError) || isJwtClockSkewError(bonusError)) &&
+      attempt < 3;
+    if (!shouldRetry) break;
+
+    console.error(
+      `[getTippableRounds] JWT-ur-fejl, forsøg ${attempt} - prøver igen om et øjeblik:`,
+      { currentError, bonusError }
+    );
+    await sleep(700 * attempt);
+  }
 
   // Skelner mellem "der er reelt ingen aktiv runde sat op" og "databasen
-  // svarede ikke lige nu" (fx når den skal vågne op igen efter en periode
-  // uden besøgende på gratis-planen). Uden dette tjek viste siden fejlagtigt
-  // "Ingen aktiv runde endnu", selvom admin faktisk HAVDE sat en runde som
-  // aktuel - se fejlbeskeden i src/app/tip/page.tsx, der fanger denne fejl.
+  // svarede ikke lige nu" (fx en midlertidig fejl hos Supabase). Uden dette
+  // tjek viste siden fejlagtigt "Ingen aktiv runde endnu", selvom admin
+  // faktisk HAVDE sat en runde som aktuel - se fejlbeskeden i
+  // src/app/tip/page.tsx, der fanger denne fejl.
   if (currentError || bonusError) {
     // Log den RIGTIGE fejl (ses i Vercel-loggen), så vi kan se om det reelt
-    // er databasen der lige er vågnet op igen, eller noget helt andet (fx en
+    // er en kendt, forbigående Supabase-fejl, eller noget helt andet (fx en
     // manglende adgangsrettighed) - i stedet for at gætte ud fra en generisk
     // besked til brugeren.
     console.error("[getTippableRounds] Kunne ikke hente runder:", {

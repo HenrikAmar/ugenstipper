@@ -86,6 +86,15 @@ export default function ReglerPage() {
             fede præmier klar til stillingen, opdaterer vi vilkårene her på siden.
           </p>
         </section>
+
+        <section className="card rounded-xl p-4">
+          <h2 className="mb-2 text-[15px] font-bold">Dine data</h2>
+          <p className="text-[13.5px] leading-relaxed text-text-muted">
+            Når du logger ind, gemmer vi din e-mail og dit navn i vores database (placeret i
+            Irland) for at kunne administrere din profil og udbetale præmier. Vi sælger eller
+            deler aldrig dine data og sporer ikke din adfærd.
+          </p>
+        </section>
       </div>
 
       <BottomNav />
