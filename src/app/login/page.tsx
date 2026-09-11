@@ -100,14 +100,15 @@ export default function LoginPage() {
     <div className="mx-auto flex min-h-screen max-w-[420px] flex-col bg-bg">
       <div className="relative overflow-hidden bg-navy px-7 pb-10 pt-14">
         <Logo size={34} />
-        <h1 className="mt-6 max-w-[260px] text-[26px] font-bold leading-tight text-white">
-          Tip Superligaen med vennerne – helt gratis
+        <h1 className="mt-6 max-w-[280px] text-[26px] font-bold leading-tight text-white">
+          Ejer du Superligaen? Tip resultaterne nu! 👇
         </h1>
-        <p className="mt-2.5 max-w-[260px] text-sm text-[#AAB4C6]">
-          Ingen indsats, ingen odds. Bare skarpe tips og en fælles stilling.
+        <p className="mt-2.5 max-w-[280px] text-sm text-[#AAB4C6]">
+          Ugenstipper er 100% gratis lir, miniligaer med vennerne og total håneret.
         </p>
-        <p className="mt-2 max-w-[260px] text-[12.5px] text-[#AAB4C6]">
-          Vi er i testfase, så der er ingen præmier endnu - det er på vej!
+        <p className="mt-2 max-w-[280px] text-[12.5px] font-semibold text-white">
+          🔥 BOOM: Fra d. 9. oktober kan du vinde en valgfri Superligatrøje (op til 750 kr.). Info
+          følger – opret din profil med det samme, så du er klar!
         </p>
         <Link
           href="/regler"
