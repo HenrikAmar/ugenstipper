@@ -81,9 +81,10 @@ export default function ReglerPage() {
         <section className="card rounded-xl p-4">
           <h2 className="mb-2 text-[15px] font-bold">Præmier</h2>
           <p className="text-[13.5px] leading-relaxed text-text-muted">
-            Vi er i øjeblikket i en testfase, så der er ingen præmier på højkant lige nu - det er
-            ren ære og håneret! Vi arbejder dog stærkt på sagen i baggrunden, og så snart der er
-            fede præmier klar til stillingen, opdaterer vi vilkårene her på siden.
+            Når konkurrencen skydes i gang d. 9. oktober, kan du vinde en valgfri, officiel
+            Superligatrøje til en værdi af op til 750 kr.! Vi lægger i øjeblikket sidste hånd på
+            de præcise sæsonperioder og slutdatoer - endelig info følger her på siden lige op til
+            kampstart. Gør dig klar!
           </p>
         </section>
 

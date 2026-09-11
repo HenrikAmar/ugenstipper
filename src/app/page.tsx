@@ -181,14 +181,15 @@ export default async function HomePage({
       <div className="relative overflow-hidden bg-navy px-7 pb-11 pt-8">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo.png" alt="Ugenstipper.dk" className="mx-auto block h-48 w-48" />
-        <h1 className="mt-8 max-w-[280px] text-[28px] font-bold leading-tight text-white">
-          Tip Superligaen med vennerne – helt gratis
+        <h1 className="mt-8 max-w-[300px] text-[28px] font-bold leading-tight text-white">
+          Ejer du Superligaen? Tip resultaterne nu! 👇
         </h1>
         <p className="mt-3 max-w-[300px] text-[14.5px] leading-relaxed text-[#AAB4C6]">
-          Gæt resultaterne i hver runde, saml point, og se hvem der kender Superligaen bedst.
+          Ugenstipper er 100% gratis lir, miniligaer med vennerne og total håneret.
         </p>
-        <p className="mt-2 max-w-[300px] text-[13px] text-[#AAB4C6]">
-          Ingen indsats, ingen odds - bare skarpe tips og en fælles stilling med vennerne.
+        <p className="mt-2 max-w-[300px] text-[13px] font-semibold text-white">
+          🔥 BOOM: Fra d. 9. oktober kan du vinde en valgfri Superligatrøje (op til 750 kr.). Info
+          følger – opret din profil med det samme, så du er klar!
         </p>
 
         <div className="mt-6 flex flex-col gap-2.5">
@@ -243,8 +244,8 @@ export default async function HomePage({
           <h2 className="text-[15px] font-bold">100% gratis, altid</h2>
           <p className="mt-1.5 text-[13.5px] leading-relaxed text-text-muted">
             Ugenstipper er lavet af fodboldgale venner i vores fritid - for sjov, uden indsats og
-            uden skjulte gebyrer. Vi er i øjeblikket i en testfase, så der er ingen præmier på
-            højkant endnu - det er på vej!
+            uden skjulte gebyrer. Vi er i øjeblikket i en testfase frem til d. 21. september,
+            hvorefter vi gør klar til opstart med præmier fra d. 9. oktober.
           </p>
         </div>
       </div>
