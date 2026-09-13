@@ -1,32 +1,19 @@
-import { useId } from "react";
-
+// Selve badge-ikonet, brugt alene (fx i src/app/error.tsx) eller sammen med
+// "Ugenstipper"-teksten (se Logo() nedenfor). Bruger det rigtige logo-billede
+// (public/logo.png) i stedet for en håndtegnet kopi af det - ellers skal
+// denne tegning huskes opdateret manuelt, hver gang selve logoet ændres (det
+// skete netop her: en tidligere håndtegnet udgave viste stadig den gamle,
+// firkantede badge-form efter selve logoet var rettet til den runde).
 export function LogoMark({ size = 40 }: { size?: number }) {
-  const gradientId = useId();
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 64 64"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/logo.png"
+      alt=""
       aria-hidden="true"
-    >
-      <defs>
-        <linearGradient id={gradientId} x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#16233D" />
-          <stop offset="1" stopColor="#17A673" />
-        </linearGradient>
-      </defs>
-      <rect width="64" height="64" rx="18" fill={`url(#${gradientId})`} />
-      <path
-        d="M19 33.5L28 42.5L46 22.5"
-        stroke="#FFFFFF"
-        strokeWidth={6.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-    </svg>
+      style={{ width: size, height: size }}
+      className="block shrink-0"
+    />
   );
 }
 
