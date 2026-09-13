@@ -16,12 +16,12 @@ export default async function AfmeldNyhedsbrevPage({
 
   if (token) {
     const admin = createAdminClient();
-    const { error, count } = await admin
+    const { data, error } = await admin
       .from("profiles")
       .update({ newsletter_opt_out: true })
       .eq("unsubscribe_token", token)
-      .select("id", { count: "exact" });
-    success = !error && (count ?? 0) > 0;
+      .select("id");
+    success = !error && (data?.length ?? 0) > 0;
   }
 
   return (
