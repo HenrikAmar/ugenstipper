@@ -101,15 +101,22 @@ export default async function HomePage({
                 </p>
               </div>
               {announcement.image_url && (
-                <div>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={announcement.image_url}
-                    alt={announcement.title}
-                    className="aspect-[4/3] w-full object-cover"
-                  />
+                <div className="px-4 pb-4">
+                  {/* Eget rundet, afgrænset "vindue" til billedet i stedet for
+                      at lade det fylde kortet helt ud til kanten - kun sådan
+                      får det afrundede hjørner hele vejen rundt (før fik det
+                      kun kortets afrunding forneden, da billedet lå i bunden
+                      af kortet, ikke i selve kortets hjørne foroven). */}
+                  <div className="overflow-hidden rounded-lg border border-border">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={announcement.image_url}
+                      alt={announcement.title}
+                      className="aspect-[4/3] w-full object-cover"
+                    />
+                  </div>
                   {announcement.image_caption && (
-                    <p className="px-4 py-2.5 text-[12px] italic text-text-muted">
+                    <p className="pt-2 text-[12px] italic text-text-muted">
                       {announcement.image_caption}
                     </p>
                   )}
