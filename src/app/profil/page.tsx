@@ -25,7 +25,7 @@ export default async function ProfilPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: profile }, { data: inviteRow }, { data: miniliga }] = await Promise.all([
+  const [{ data: profile }, { data: inviteRow }, { data: miniligaer }] = await Promise.all([
     supabase
       .from("profiles")
       .select("display_name, role, avatar_color, newsletter_opt_out")
@@ -38,19 +38,20 @@ export default async function ProfilPage() {
       .maybeSingle(),
     supabase
       .from("mini_league_members")
-      .select("mini_leagues(name, password_hash)")
-      .eq("user_id", user?.id ?? "")
-      .maybeSingle(),
+      .select("mini_leagues(id, name, password_hash)")
+      .eq("user_id", user?.id ?? ""),
   ]);
 
-  const miniligaRow =
-    (
-      miniliga as unknown as {
-        mini_leagues: { name: string; password_hash: string | null } | null;
-      } | null
-    )?.mini_leagues ?? null;
-  const miniligaName = miniligaRow?.name ?? null;
-  const miniligaHasPassword = miniligaRow?.password_hash != null;
+  // Man kan nu være med i flere miniligaer ad gangen - byg listen ud fra
+  // alle rækker i stedet for kun den første/eneste.
+  const miniligaListe = (
+    (miniligaer ?? []) as unknown as {
+      mini_leagues: { id: string; name: string; password_hash: string | null } | null;
+    }[]
+  )
+    .map((row) => row.mini_leagues)
+    .filter((l): l is { id: string; name: string; password_hash: string | null } => l !== null)
+    .map((l) => ({ id: l.id, name: l.name, hasPassword: l.password_hash != null }));
 
   return (
     <div className="mx-auto min-h-screen max-w-[420px] bg-bg pb-24">
@@ -76,7 +77,7 @@ export default async function ProfilPage() {
 
       {user && <InviteFriend qualifiedInvites={inviteRow?.qualified_invites ?? 0} />}
 
-      {user && <MiniligaCard leagueName={miniligaName} hasPassword={miniligaHasPassword} />}
+      {user && <MiniligaCard leagues={miniligaListe} />}
 
       <AvatarColorPicker currentColor={profile?.avatar_color ?? null} />
 

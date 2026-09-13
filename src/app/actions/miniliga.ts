@@ -24,18 +24,20 @@ export async function joinMiniliga(name: string, password: string) {
   return { success: true };
 }
 
-export async function leaveMiniliga() {
+// Forlader én bestemt miniliga - man kan nu være med i flere ad gangen, så
+// vi skal vide HVILKEN man vil forlade.
+export async function leaveMiniliga(leagueId: string) {
   const supabase = createClient();
-  const { error } = await supabase.rpc("leave_miniliga");
+  const { error } = await supabase.rpc("leave_miniliga", { p_league_id: leagueId });
 
   if (error) return { error: error.message };
   return { success: true };
 }
 
-// Sender en invitation til miniligaen på brugerens vegne. Kræver at brugeren selv taster
-// password ind igen, så vi kan bekræfte det er korrekt OG sende det videre i mailen - vi
-// gemmer aldrig selve passwordet, kun en hash af det.
-export async function inviteToMiniliga(email: string, password: string) {
+// Sender en invitation til én bestemt miniliga på brugerens vegne. Kræver at brugeren selv
+// taster password ind igen, så vi kan bekræfte det er korrekt OG sende det videre i mailen -
+// vi gemmer aldrig selve passwordet, kun en hash af det.
+export async function inviteToMiniliga(leagueId: string, email: string, password: string) {
   const trimmed = email.trim().toLowerCase();
   const gyldigEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
   if (!trimmed || !gyldigEmail) {
@@ -55,10 +57,11 @@ export async function inviteToMiniliga(email: string, password: string) {
     .from("mini_league_members")
     .select("league_id, mini_leagues(name)")
     .eq("user_id", user.id)
+    .eq("league_id", leagueId)
     .maybeSingle();
 
   if (!membership) {
-    return { error: "Du er ikke med i en miniliga." };
+    return { error: "Du er ikke med i den miniliga." };
   }
 
   const { error: pwError } = await supabase.rpc("check_miniliga_password", {

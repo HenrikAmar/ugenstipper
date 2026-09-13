@@ -178,28 +178,30 @@ export default async function StillingPage({
     .filter((p) => p.points > 0)
     .sort((a, b) => b.points - a.points);
 
-  const { data: membership } = await supabase
+  // Man kan nu være med i flere miniligaer ad gangen - hent alle
+  // medlemskaber og byg én stilling pr. miniliga i stedet for kun én.
+  const { data: memberships } = await supabase
     .from("mini_league_members")
     .select("league_id, mini_leagues(name)")
-    .eq("user_id", user?.id ?? "")
-    .maybeSingle();
+    .eq("user_id", user?.id ?? "");
 
-  let miniligaName: string | null = null;
-  let miniligaRanking: RankRow[] = [];
+  const miniligaStandings = await Promise.all(
+    ((memberships ?? []) as unknown as { league_id: string; mini_leagues: { name: string } | null }[]).map(
+      async (m) => {
+        const { data: members } = await supabase
+          .from("mini_league_members")
+          .select("user_id")
+          .eq("league_id", m.league_id);
 
-  if (membership) {
-    miniligaName =
-      (membership as unknown as { mini_leagues: { name: string } | null }).mini_leagues?.name ??
-      null;
-
-    const { data: members } = await supabase
-      .from("mini_league_members")
-      .select("user_id")
-      .eq("league_id", membership.league_id);
-
-    const memberIds = new Set((members ?? []).map((m) => m.user_id));
-    miniligaRanking = ranking.filter((r) => memberIds.has(r.id));
-  }
+        const memberIds = new Set((members ?? []).map((mm) => mm.user_id));
+        return {
+          leagueId: m.league_id,
+          leagueName: m.mini_leagues?.name ?? "",
+          ranking: ranking.filter((r) => memberIds.has(r.id)),
+        };
+      }
+    )
+  );
 
   const currentParams = {
     visning: searchParams.visning,
@@ -294,9 +296,14 @@ export default async function StillingPage({
         </div>
       )}
 
-      {miniligaName && (
-        <MiniligaStanding leagueName={miniligaName} ranking={miniligaRanking} userId={user?.id} />
-      )}
+      {miniligaStandings.map((s) => (
+        <MiniligaStanding
+          key={s.leagueId}
+          leagueName={s.leagueName}
+          ranking={s.ranking}
+          userId={user?.id}
+        />
+      ))}
 
       {inviteRanking.length > 0 && (
         <div className="mt-6 px-5">

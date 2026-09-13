@@ -11,13 +11,113 @@ import {
 
 type Mode = "opret" | "deltag" | null;
 
-export function MiniligaCard({
-  leagueName,
-  hasPassword,
-}: {
-  leagueName: string | null;
+interface Miniliga {
+  id: string;
+  name: string;
   hasPassword: boolean;
-}) {
+}
+
+// Én miniliga man allerede er med i - egen invite-formular og "forlad"-knap,
+// så man kan invitere til/forlade hver miniliga for sig, uafhængigt af de
+// andre man også er med i.
+function MembershipRow({ league }: { league: Miniliga }) {
+  const router = useRouter();
+
+  const [leaving, setLeaving] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [invitePassword, setInvitePassword] = useState("");
+  const [inviteSending, setInviteSending] = useState(false);
+  const [inviteStatus, setInviteStatus] = useState<
+    { type: "success" | "error"; text: string } | null
+  >(null);
+
+  async function handleLeave() {
+    setLeaving(true);
+    await leaveMiniliga(league.id);
+    router.refresh();
+    setLeaving(false);
+  }
+
+  async function handleInvite(e: React.FormEvent) {
+    e.preventDefault();
+    setInviteStatus(null);
+    setInviteSending(true);
+
+    const result = await inviteToMiniliga(league.id, inviteEmail, invitePassword);
+
+    if (result?.error) {
+      setInviteStatus({ type: "error", text: result.error });
+    } else {
+      setInviteStatus({ type: "success", text: "Invitationen er sendt!" });
+      setInviteEmail("");
+      setInvitePassword("");
+    }
+
+    setInviteSending(false);
+  }
+
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-border p-3">
+      <div className="flex items-center justify-between">
+        <span className="rounded-full bg-[#CFF0E1] px-2 py-0.5 text-[12px] font-bold text-accent">
+          {league.name}
+        </span>
+        <button
+          type="button"
+          onClick={handleLeave}
+          disabled={leaving}
+          className="text-[12.5px] font-semibold text-danger underline disabled:opacity-60"
+        >
+          Forlad
+        </button>
+      </div>
+
+      <form onSubmit={handleInvite} className="flex flex-col gap-2">
+        <input
+          type="email"
+          name="miniliga-invite-email"
+          autoComplete="off"
+          required
+          value={inviteEmail}
+          onChange={(e) => setInviteEmail(e.target.value)}
+          placeholder="vens@eksempel.dk"
+          className="h-12 rounded-[10px] border border-border bg-surface px-3.5 text-[15px]"
+        />
+        {league.hasPassword && (
+          <input
+            type="password"
+            name="miniliga-invite-kode"
+            autoComplete="off"
+            required
+            value={invitePassword}
+            onChange={(e) => setInvitePassword(e.target.value)}
+            placeholder="Miniligaens kode"
+            className="h-12 rounded-[10px] border border-border bg-surface px-3.5 text-[15px]"
+          />
+        )}
+        <button
+          type="submit"
+          disabled={inviteSending}
+          className="h-[46px] rounded-[10px] bg-accent-2 text-[15px] font-bold text-white disabled:opacity-60"
+        >
+          {inviteSending ? "Sender …" : "Inviter til miniligaen"}
+        </button>
+      </form>
+
+      {inviteStatus && (
+        <p
+          className={`text-[13px] font-medium ${
+            inviteStatus.type === "success" ? "text-accent" : "text-danger"
+          }`}
+        >
+          {inviteStatus.text}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export function MiniligaCard({ leagues }: { leagues: Miniliga[] }) {
   const router = useRouter();
 
   const [mode, setMode] = useState<Mode>(null);
@@ -25,13 +125,6 @@ export function MiniligaCard({
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [invitePassword, setInvitePassword] = useState("");
-  const [inviteSending, setInviteSending] = useState(false);
-  const [inviteStatus, setInviteStatus] = useState<
-    { type: "success" | "error"; text: string } | null
-  >(null);
 
   function resetForm() {
     setMode(null);
@@ -60,98 +153,17 @@ export function MiniligaCard({
     setLoading(false);
   }
 
-  async function handleLeave() {
-    setLoading(true);
-    await leaveMiniliga();
-    router.refresh();
-    setLoading(false);
-  }
-
-  async function handleInvite(e: React.FormEvent) {
-    e.preventDefault();
-    setInviteStatus(null);
-    setInviteSending(true);
-
-    const result = await inviteToMiniliga(inviteEmail, invitePassword);
-
-    if (result?.error) {
-      setInviteStatus({ type: "error", text: result.error });
-    } else {
-      setInviteStatus({ type: "success", text: "Invitationen er sendt!" });
-      setInviteEmail("");
-      setInvitePassword("");
-    }
-
-    setInviteSending(false);
-  }
-
-  if (leagueName) {
-    return (
-      <div className="card mx-5 mt-3 flex flex-col gap-3 rounded-xl p-4">
-        <div className="flex items-center justify-between">
-          <span className="text-[13px] font-bold">Miniliga</span>
-          <span className="rounded-full bg-[#CFF0E1] px-2 py-0.5 text-[12px] font-bold text-accent">
-            {leagueName}
-          </span>
-        </div>
-
-        <form onSubmit={handleInvite} className="flex flex-col gap-2">
-          <input
-            type="email"
-            name="miniliga-invite-email"
-            autoComplete="off"
-            required
-            value={inviteEmail}
-            onChange={(e) => setInviteEmail(e.target.value)}
-            placeholder="vens@eksempel.dk"
-            className="h-12 rounded-[10px] border border-border bg-surface px-3.5 text-[15px]"
-          />
-          {hasPassword && (
-            <input
-              type="password"
-              name="miniliga-invite-kode"
-              autoComplete="off"
-              required
-              value={invitePassword}
-              onChange={(e) => setInvitePassword(e.target.value)}
-              placeholder="Miniligaens kode"
-              className="h-12 rounded-[10px] border border-border bg-surface px-3.5 text-[15px]"
-            />
-          )}
-          <button
-            type="submit"
-            disabled={inviteSending}
-            className="h-[46px] rounded-[10px] bg-accent-2 text-[15px] font-bold text-white disabled:opacity-60"
-          >
-            {inviteSending ? "Sender …" : "Inviter til miniligaen"}
-          </button>
-        </form>
-
-        {inviteStatus && (
-          <p
-            className={`text-[13px] font-medium ${
-              inviteStatus.type === "success" ? "text-accent" : "text-danger"
-            }`}
-          >
-            {inviteStatus.text}
-          </p>
-        )}
-
-        <button
-          type="button"
-          onClick={handleLeave}
-          disabled={loading}
-          className="text-[12.5px] font-semibold text-danger underline disabled:opacity-60"
-        >
-          Forlad miniliga
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div className="card mx-5 mt-3 flex flex-col gap-3 rounded-xl p-4">
       <span className="text-[13px] font-bold">Miniliga</span>
+
+      {leagues.length > 0 && (
+        <div className="flex flex-col gap-2">
+          {leagues.map((league) => (
+            <MembershipRow key={league.id} league={league} />
+          ))}
+        </div>
+      )}
 
       {mode === null ? (
         <div className="flex gap-2">
