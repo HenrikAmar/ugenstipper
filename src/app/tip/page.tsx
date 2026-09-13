@@ -102,6 +102,28 @@ export default async function TipPage({
   return (
     <div className="mx-auto min-h-screen max-w-[420px] bg-bg pb-24">
       <AppHeader title="Tip" />
+
+      {banner && (
+        <div className="px-5 pb-4 pt-1">
+          {/* Sponsorbanner, valgt vægtet blandt de aktive bannere ovenfor.
+              Ligger øverst på siden (før man begynder at tippe), så alle ser
+              det - ikke kun dem der scroller helt ned. Linker via
+              /api/banner-click, som tæller klikket op og derefter sender
+              videre til sponsorens rigtige link - se den route og
+              src/app/admin/bannere for hvor tallene vises. Åbner i nyt
+              faneblad, da det altid er et eksternt link. */}
+          <a
+            href={`/api/banner-click/${banner.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block overflow-hidden rounded-xl"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={banner.image_url} alt={banner.title} className="w-full" />
+          </a>
+        </div>
+      )}
+
       <RoundTabs rounds={rounds} activeRoundId={activeRound.id} basePath="/tip" />
 
       <div className="flex items-baseline justify-between px-5 pb-3">
@@ -118,25 +140,6 @@ export default async function TipPage({
           props opdateres) - så kan felterne fejlagtigt vise forrige
           rundes (eller tomme) værdier for den nye runde. */}
       <TipRoundForm key={activeRound.id} matches={matchList} tipsByMatch={tipsByMatch} />
-
-      {banner && (
-        <div className="px-5 pt-5">
-          {/* Sponsorbanner, valgt vægtet blandt de aktive bannere ovenfor.
-              Linker via /api/banner-click, som tæller klikket op og derefter
-              sender videre til sponsorens rigtige link - se den route og
-              src/app/admin/bannere for hvor tallene vises. Åbner i nyt
-              faneblad, da det altid er et eksternt link. */}
-          <a
-            href={`/api/banner-click/${banner.id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block overflow-hidden rounded-xl"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={banner.image_url} alt={banner.title} className="w-full" />
-          </a>
-        </div>
-      )}
 
       <BottomNav />
     </div>
