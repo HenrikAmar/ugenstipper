@@ -41,6 +41,18 @@ export interface Announcement {
   created_at: string;
 }
 
+export interface SponsorBanner {
+  id: string;
+  title: string;
+  image_url: string;
+  link_url: string;
+  weight: number;
+  active: boolean;
+  impressions: number;
+  clicks: number;
+  created_at: string;
+}
+
 export interface Tip {
   id: string;
   user_id: string;

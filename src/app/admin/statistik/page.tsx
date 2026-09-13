@@ -249,9 +249,14 @@ export default async function AdminStatistikPage() {
           <img src="/logo.png" alt="" className="h-8 w-8" />
           <h1 className="text-2xl font-extrabold">Statistik</h1>
         </div>
-        <a href="/admin/kampe" className="text-sm font-semibold text-accent">
-          ← Tilbage til Kampe
-        </a>
+        <div className="flex flex-col items-end gap-1.5">
+          <a href="/admin/kampe" className="text-sm font-semibold text-accent">
+            ← Tilbage til Kampe
+          </a>
+          <a href="/admin/bannere" className="text-sm font-semibold text-accent">
+            Bannere →
+          </a>
+        </div>
       </div>
       <p className="mt-1 text-sm text-text-muted">
         Overblik over brugere, vindere og besøg på Ugenstipper.
