@@ -34,3 +34,20 @@ export async function setAvatarColor(color: string | null) {
   revalidatePath("/stilling");
   return { error: null };
 }
+
+// Til/framelder nyhedsbrevet fra profilsiden - samme felt som afmeld-linket
+// i selve nyhedsbrev-mailen sætter (se src/app/nyhedsbrev/afmeld).
+export async function toggleNewsletterOptOut(currentlyOptedOut: boolean) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await supabase
+    .from("profiles")
+    .update({ newsletter_opt_out: !currentlyOptedOut })
+    .eq("id", user.id);
+
+  revalidatePath("/profil");
+}

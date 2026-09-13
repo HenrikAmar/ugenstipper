@@ -27,6 +27,10 @@ export async function middleware(request: NextRequest) {
     path.startsWith("/login") ||
     path.startsWith("/auth") ||
     path.startsWith("/regler") ||
+    // Afmeld-linket i nyhedsbrev-mails skal kunne bruges uden at være logget
+    // ind - man skal jo netop kunne afmelde sig, selvom man ikke lige har
+    // lyst til/husker at logge ind. Se src/app/nyhedsbrev/afmeld.
+    path.startsWith("/nyhedsbrev") ||
     path.startsWith("/api");
 
   if (!user && !isPublicPath) {

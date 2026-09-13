@@ -6,6 +6,7 @@ import { ChangePasswordForm } from "@/components/ChangePasswordForm";
 import { InviteFriend } from "@/components/InviteFriend";
 import { MiniligaCard } from "@/components/MiniligaCard";
 import { AvatarColorPicker } from "@/components/AvatarColorPicker";
+import { toggleNewsletterOptOut } from "./actions";
 import { redirect } from "next/navigation";
 
 // Rollen (admin/user) kan ændre sig i databasen - må ikke caches.
@@ -27,7 +28,7 @@ export default async function ProfilPage() {
   const [{ data: profile }, { data: inviteRow }, { data: miniliga }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("display_name, role, avatar_color")
+      .select("display_name, role, avatar_color, newsletter_opt_out")
       .eq("id", user?.id ?? "")
       .maybeSingle(),
     supabase
@@ -80,6 +81,18 @@ export default async function ProfilPage() {
       <AvatarColorPicker currentColor={profile?.avatar_color ?? null} />
 
       <ChangePasswordForm />
+
+      <form
+        action={toggleNewsletterOptOut.bind(null, profile?.newsletter_opt_out ?? false)}
+        className="mx-5 mt-4"
+      >
+        <button
+          type="submit"
+          className="w-full rounded-[10px] border border-border bg-surface py-3 text-sm font-bold"
+        >
+          {profile?.newsletter_opt_out ? "Tilmeld nyhedsbrev igen" : "Frameld nyhedsbrev"}
+        </button>
+      </form>
 
       <a href="/regler" className="mx-5 mt-4 flex items-center justify-center rounded-[10px] border border-border bg-surface py-3 text-sm font-bold">
         Regler

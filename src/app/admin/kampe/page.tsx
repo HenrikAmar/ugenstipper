@@ -87,6 +87,9 @@ export default async function AdminKampePage({
           <a href="/admin/bannere" className="text-sm font-semibold text-accent">
             Bannere →
           </a>
+          <a href="/admin/nyhedsbrev" className="text-sm font-semibold text-accent">
+            Nyhedsbrev →
+          </a>
           <a href="/tip" className="text-sm font-semibold text-text-muted">
             ← Tilbage til Ugenstipper
           </a>

@@ -256,6 +256,9 @@ export default async function AdminStatistikPage() {
           <a href="/admin/bannere" className="text-sm font-semibold text-accent">
             Bannere →
           </a>
+          <a href="/admin/nyhedsbrev" className="text-sm font-semibold text-accent">
+            Nyhedsbrev →
+          </a>
         </div>
       </div>
       <p className="mt-1 text-sm text-text-muted">

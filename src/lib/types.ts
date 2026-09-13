@@ -7,6 +7,11 @@ export interface Profile {
   // Selvvalgt avatar-farve (en af de 8 faste farver) - null hvis brugeren
   // ikke selv har valgt en, og bare får den automatisk udregnede farve.
   avatar_color: string | null;
+  // Om brugeren har frameldt nyhedsbrevet (se src/app/admin/nyhedsbrev).
+  newsletter_opt_out: boolean;
+  // Uigennemskueligt "kodeord" brugt i afmeld-linket i nyhedsbrev-mails, så
+  // afmelding kan ske uden at være logget ind.
+  unsubscribe_token: string;
   created_at: string;
 }
 

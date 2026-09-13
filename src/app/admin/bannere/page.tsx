@@ -46,6 +46,9 @@ export default async function AdminBannerePage() {
           <a href="/admin/statistik" className="text-sm font-semibold text-accent">
             Statistik →
           </a>
+          <a href="/admin/nyhedsbrev" className="text-sm font-semibold text-accent">
+            Nyhedsbrev →
+          </a>
           <a href="/tip" className="text-sm font-semibold text-text-muted">
             Tilbage til Ugenstipper
           </a>
