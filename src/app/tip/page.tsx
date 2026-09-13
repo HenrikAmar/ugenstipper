@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getTippableRounds, roundLabel } from "@/lib/rounds";
 import { RoundTabs } from "@/components/RoundTabs";
@@ -106,10 +105,18 @@ export default async function TipPage({
       <TipRoundForm key={activeRound.id} matches={matchList} tipsByMatch={tipsByMatch} />
 
       <div className="px-5 pt-5">
-        <Link href="/" className="block overflow-hidden rounded-xl">
+        {/* Reklamebanner (Tiny Mobile Robots, opstregningsrobotter) - åbner i
+            nyt faneblad, da det er et eksternt referral-link, i modsætning
+            til det tidligere banner der linkede internt til forsiden. */}
+        <a
+          href="https://tinymobilerobots.dk/book-en-demo?utm_campaign=502749433-RoW%20%7C%20DK%20%7C%20Kostas%20Football%20Club%20Link&utm_source=web&utm_medium=UT&utm_term=Football%20Club&utm_content=Demo%20Form"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block overflow-hidden rounded-xl"
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/banner-forside.jpg" alt="Ugenstipper.dk" className="w-full" />
-        </Link>
+          <img src="/banner-tinymobilerobots.jpg" alt="Tiny Mobile Robots - opstregningsrobotter" className="w-full" />
+        </a>
       </div>
 
       <BottomNav />
