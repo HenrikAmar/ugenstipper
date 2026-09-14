@@ -87,7 +87,26 @@ export async function createAnnouncement(
 
   revalidatePath("/admin/nyheder");
   revalidatePath("/");
+  revalidatePath("/nyheder");
   return { error: null };
+}
+
+// Sætter (eller fjerner) en nyhed som "hovednyhed" - den bliver så stående
+// øverst på forsiden, uanset om der oprettes nyere nyheder bagefter. Kun én
+// kan være fastgjort ad gangen (se det unikke indeks i
+// supabase/nyheder_fastgor.sql), så vi fjerner altid fastgørelsen fra en
+// evt. tidligere hovednyhed først, når en ny sættes.
+export async function setPinnedAnnouncement(id: string, pinned: boolean) {
+  const supabase = await requireAdmin();
+
+  if (pinned) {
+    await supabase.from("announcements").update({ pinned: false }).eq("pinned", true);
+  }
+
+  await supabase.from("announcements").update({ pinned }).eq("id", id);
+  revalidatePath("/admin/nyheder");
+  revalidatePath("/");
+  revalidatePath("/nyheder");
 }
 
 export async function deleteAnnouncement(id: string, imageUrl: string | null) {
@@ -105,4 +124,5 @@ export async function deleteAnnouncement(id: string, imageUrl: string | null) {
   await supabase.from("announcements").delete().eq("id", id);
   revalidatePath("/admin/nyheder");
   revalidatePath("/");
+  revalidatePath("/nyheder");
 }

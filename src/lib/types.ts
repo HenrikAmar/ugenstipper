@@ -46,6 +46,10 @@ export interface Announcement {
   body: string;
   image_url: string | null;
   image_caption: string | null;
+  // Om nyheden er sat som "hovednyhed" - bliver så stående øverst på
+  // forsiden, uanset om der kommer nyere nyheder til (se
+  // supabase/nyheder_fastgor.sql). Kun én kan være fastgjort ad gangen.
+  pinned: boolean;
   created_at: string;
 }
 

@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { deleteAnnouncement } from "./actions";
+import { deleteAnnouncement, setPinnedAnnouncement } from "./actions";
 import { NyhedForm } from "./NyhedForm";
 import { DeleteAnnouncementButton } from "@/components/DeleteAnnouncementButton";
 import type { Announcement } from "@/lib/types";
@@ -13,6 +13,7 @@ export default async function AdminNyhederPage() {
   const { data: announcements } = await supabase
     .from("announcements")
     .select("*")
+    .order("pinned", { ascending: false })
     .order("created_at", { ascending: false });
 
   const announcementList: Announcement[] = announcements ?? [];
@@ -28,8 +29,10 @@ export default async function AdminNyhederPage() {
           </div>
           <p className="mt-1 text-sm text-text-muted">
             Skriv nyheder til forsiden herfra - de vises med det samme, ingen
-            kode eller push nødvendig. Nyeste øverst, og den øverste får
-            automatisk et &quot;NYT&quot;-mærke.
+            kode eller push nødvendig. Forsiden viser kun hovednyheden og
+            den næstnyeste nyhed derunder - resten kan ses under &quot;Se
+            gamle nyheder&quot;. Sæt en nyhed som hovednyhed, hvis den skal
+            blive stående øverst, selvom du opretter nyere nyheder bagefter.
           </p>
         </div>
         <div className="flex flex-col items-end gap-1.5 text-right">
@@ -58,7 +61,14 @@ export default async function AdminNyhederPage() {
           <div key={announcement.id} className="card overflow-hidden rounded-xl">
             <div className="flex items-start justify-between gap-3 p-4">
               <div className="min-w-0">
-                <h3 className="text-sm font-bold">{announcement.title}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold">{announcement.title}</h3>
+                  {announcement.pinned && (
+                    <span className="rounded-full bg-accent-tint px-2 py-0.5 text-[10px] font-bold text-accent">
+                      HOVEDNYHED
+                    </span>
+                  )}
+                </div>
                 <p className="mt-1 whitespace-pre-line text-[13px] leading-relaxed text-text-muted">
                   {announcement.body}
                 </p>
@@ -66,12 +76,19 @@ export default async function AdminNyhederPage() {
                   {new Date(announcement.created_at).toLocaleString("da-DK")}
                 </p>
               </div>
-              <DeleteAnnouncementButton
-                id={announcement.id}
-                imageUrl={announcement.image_url}
-                title={announcement.title}
-                deleteAnnouncement={deleteAnnouncement}
-              />
+              <div className="flex shrink-0 flex-col items-end gap-1.5">
+                <form action={setPinnedAnnouncement.bind(null, announcement.id, !announcement.pinned)}>
+                  <button className="whitespace-nowrap rounded-lg border border-border px-3 py-1.5 text-xs font-bold">
+                    {announcement.pinned ? "Fjern som hovednyhed" : "Sæt som hovednyhed"}
+                  </button>
+                </form>
+                <DeleteAnnouncementButton
+                  id={announcement.id}
+                  imageUrl={announcement.image_url}
+                  title={announcement.title}
+                  deleteAnnouncement={deleteAnnouncement}
+                />
+              </div>
             </div>
             {announcement.image_url && (
               <div>

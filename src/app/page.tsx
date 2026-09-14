@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { AppHeader } from "@/components/AppHeader";
 import { BottomNav } from "@/components/BottomNav";
 import { PrefetchTip } from "@/components/PrefetchTip";
+import { AnnouncementCard } from "@/components/AnnouncementCard";
 import type { Announcement } from "@/lib/types";
 
 // Forsiden. Viser noget forskelligt afhængig af om man er logget ind:
@@ -63,13 +64,21 @@ export default async function HomePage({
   // stedet for salgsteksten - man skal ikke se den igen, men skal heller
   // ikke sendes direkte til /tip uden om denne side.
   if (user) {
+    // Kun hovednyheden (fastgjort, hvis der er én - ellers bare den
+    // nyeste) og én undernyhed vises på forsiden - resten ligger under
+    // "Se gamle nyheder" (/nyheder). Henter 3 i stedet for 2, udelukkende
+    // for at kunne se om der REELT er flere at vise linket for, uden en
+    // ekstra separat forespørgsel bare til det.
     const { data: announcements } = await supabase
       .from("announcements")
       .select("*")
+      .order("pinned", { ascending: false })
       .order("created_at", { ascending: false })
-      .limit(5);
+      .limit(3);
 
-    const announcementList: Announcement[] = announcements ?? [];
+    const fetchedAnnouncements: Announcement[] = announcements ?? [];
+    const announcementList = fetchedAnnouncements.slice(0, 2);
+    const hasMoreAnnouncements = fetchedAnnouncements.length > 2;
 
     return (
       <div className="mx-auto min-h-screen max-w-[420px] bg-bg pb-24">
@@ -78,52 +87,23 @@ export default async function HomePage({
 
         <div className="flex flex-col gap-3 px-5 pt-3">
           {announcementList.map((announcement, i) => (
-            <div key={announcement.id} className="card overflow-hidden rounded-xl">
-              {i === 0 && !announcement.image_url && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src="/logo.png"
-                  alt="Ugenstipper.dk"
-                  className="mx-auto mb-3 mt-4 block h-48 w-48"
-                />
-              )}
-              <div className="p-4">
-                <div className="flex items-center gap-2">
-                  {i === 0 && (
-                    <span className="rounded-full bg-accent-tint px-2 py-0.5 text-[10px] font-bold text-accent">
-                      NYT
-                    </span>
-                  )}
-                  <h2 className="text-[15px] font-bold">{announcement.title}</h2>
-                </div>
-                <p className="mt-1.5 whitespace-pre-line text-[13.5px] leading-relaxed text-text-muted">
-                  {announcement.body}
-                </p>
-              </div>
-              {announcement.image_url && (
-                <div className="px-4 pb-4">
-                  {/* Eget rundet, afgrænset "vindue" til billedet i stedet for
-                      at lade det fylde kortet helt ud til kanten - kun sådan
-                      får det afrundede hjørner hele vejen rundt (før fik det
-                      kun kortets afrunding forneden, da billedet lå i bunden
-                      af kortet, ikke i selve kortets hjørne foroven). */}
-                  <div className="overflow-hidden rounded-lg border border-border">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={announcement.image_url}
-                      alt={announcement.title}
-                      className="aspect-[4/3] w-full object-cover"
-                    />
-                  </div>
-                  {announcement.image_caption && (
-                    <p className="pt-2 text-[12px] italic text-text-muted">
-                      {announcement.image_caption}
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
+            <AnnouncementCard
+              key={announcement.id}
+              announcement={announcement}
+              showNytBadge={i === 0}
+              showLogoIfNoImage={i === 0}
+            />
           ))}
+          {hasMoreAnnouncements && (
+            <div className="text-right">
+              <Link
+                href="/nyheder"
+                className="text-[12.5px] font-semibold text-accent underline underline-offset-2"
+              >
+                Se gamle nyheder →
+              </Link>
+            </div>
+          )}
         </div>
 
         <div className="px-5 pt-5">
