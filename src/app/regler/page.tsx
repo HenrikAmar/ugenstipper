@@ -91,9 +91,11 @@ export default function ReglerPage() {
         <section className="card rounded-xl p-4">
           <h2 className="mb-2 text-[15px] font-bold">Dine data</h2>
           <p className="text-[13.5px] leading-relaxed text-text-muted">
-            Når du logger ind, gemmer vi din e-mail og dit navn i vores database (placeret i
-            Irland) for at kunne administrere din profil og udbetale præmier. Vi sælger eller
-            deler aldrig dine data og sporer ikke din adfærd.
+            Når du logger ind, gemmer vi din e-mail, dit navn og din fødselsdato i vores database
+            (placeret i Irland) for at kunne administrere din profil, udbetale præmier og sikre,
+            at du ikke får vist reklamer, der ikke er beregnet til din aldersgruppe (f.eks.
+            spil/betting til brugere under 18 år). Vi sælger eller deler aldrig dine data og
+            sporer ikke din adfærd.
           </p>
         </section>
       </div>

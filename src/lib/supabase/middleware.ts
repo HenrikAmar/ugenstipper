@@ -32,5 +32,20 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  return { supabaseResponse, user };
+  // Bruges til aldersverificerings-gaten i src/middleware.ts - slår op om
+  // brugeren mangler at udfylde sin fødselsdato (se supabase/alder.sql).
+  // Fejler opslaget (fx en midlertidig fejl), antager vi at den IKKE
+  // mangler, så folk ikke bliver låst ude på grund af en fejl der ikke er
+  // deres.
+  let needsBirthDate = false;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("birth_date")
+      .eq("id", user.id)
+      .maybeSingle();
+    needsBirthDate = profile !== null && profile.birth_date === null;
+  }
+
+  return { supabaseResponse, user, needsBirthDate };
 }

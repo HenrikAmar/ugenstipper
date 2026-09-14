@@ -13,12 +13,14 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [birthDate, setBirthDate] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [ref, setRef] = useState<string | null>(null);
 
   const supabase = createClient();
+  const today = new Date().toISOString().split("T")[0];
 
   // Læs evt. "?ref=..." og "?mode=signup" fra et invite-link.
   useEffect(() => {
@@ -68,10 +70,31 @@ export default function LoginPage() {
         return;
       }
 
+      // Fødselsdato er påkrævet fra og med denne ændring, så vi kan sikre
+      // aldersbegrænsede reklamer (se src/app/alder og supabase/alder.sql) -
+      // uden om HTML's egen "required" (fx hvis JS-validering slår fejl et
+      // sted) tjekker vi den også her.
+      if (!birthDate) {
+        setError("Indtast din fødselsdato.");
+        setLoading(false);
+        return;
+      }
+      if (birthDate > today) {
+        setError("Fødselsdatoen kan ikke være i fremtiden.");
+        setLoading(false);
+        return;
+      }
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: trimmedName || undefined, invited_by: ref || undefined } },
+        options: {
+          data: {
+            full_name: trimmedName || undefined,
+            invited_by: ref || undefined,
+            birth_date: birthDate,
+          },
+        },
       });
       if (error) setError(error.message);
       else setInfo("Bruger oprettet! Tjek din e-mail for at bekræfte kontoen.");
@@ -147,6 +170,24 @@ export default function LoginPage() {
                   placeholder="Vælg brugernavn"
                   className="h-12 rounded-[10px] border border-border bg-surface px-3.5 text-[15px]"
                 />
+              </div>
+            )}
+
+            {mode === "signup" && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[13px] font-semibold">Fødselsdato</label>
+                <input
+                  type="date"
+                  required
+                  max={today}
+                  value={birthDate}
+                  onChange={(e) => setBirthDate(e.target.value)}
+                  className="h-12 rounded-[10px] border border-border bg-surface px-3.5 text-[15px]"
+                />
+                <span className="text-[11px] text-text-muted">
+                  Bruges kun til at undgå at vise fx betting-reklamer til dig, hvis du er under
+                  18. Ændrer intet ved selve spillet.
+                </span>
               </div>
             )}
 

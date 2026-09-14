@@ -26,3 +26,20 @@ export function pickWeightedBanner(banners: SponsorBanner[]): SponsorBanner | nu
   // det sidste banner i stedet for at returnere ingenting.
   return active[active.length - 1];
 }
+
+/**
+ * Fjerner bannere med en aldersgrænse (min_age), som brugeren ikke
+ * opfylder - fx et betting-banner sat til min_age 18 vises ikke til nogen
+ * under 18. Kender vi ikke brugerens alder (age === null, fx en fejl ved
+ * opslaget), er det sikrest at udelukke ALLE aldersbegrænsede bannere i
+ * stedet for at vise dem - se src/app/tip/page.tsx.
+ */
+export function filterBannersForAge(
+  banners: SponsorBanner[],
+  age: number | null
+): SponsorBanner[] {
+  return banners.filter((b) => {
+    if (b.min_age === null || b.min_age === undefined) return true;
+    return age !== null && age >= b.min_age;
+  });
+}

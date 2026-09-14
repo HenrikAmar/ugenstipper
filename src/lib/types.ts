@@ -12,6 +12,9 @@ export interface Profile {
   // Uigennemskueligt "kodeord" brugt i afmeld-linket i nyhedsbrev-mails, så
   // afmelding kan ske uden at være logget ind.
   unsubscribe_token: string;
+  // Null indtil brugeren har udfyldt den på /alder (se supabase/alder.sql) -
+  // bruges til at afgøre, om aldersbegrænsede bannere må vises.
+  birth_date: string | null;
   created_at: string;
 }
 
@@ -53,6 +56,9 @@ export interface SponsorBanner {
   link_url: string;
   weight: number;
   active: boolean;
+  // Null = ingen aldersgrænse. Ellers vises banneret kun til brugere der
+  // (ifølge deres fødselsdato) er mindst så gamle - se src/lib/banners.ts.
+  min_age: number | null;
   impressions: number;
   clicks: number;
   created_at: string;

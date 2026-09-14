@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getTippableRounds, roundLabel } from "@/lib/rounds";
-import { pickWeightedBanner } from "@/lib/banners";
+import { pickWeightedBanner, filterBannersForAge } from "@/lib/banners";
+import { calculateAge } from "@/lib/age";
 import { RoundTabs } from "@/components/RoundTabs";
 import { TipRoundForm } from "@/components/TipRoundForm";
 import { BottomNav } from "@/components/BottomNav";
@@ -38,10 +39,25 @@ export default async function TipPage({
     supabase.from("sponsor_banners").select("*").eq("active", true),
   ]);
 
+  // Bannere med en aldersgrænse (fx betting, 18+) skal filtreres fra FØR
+  // den vægtede lodtrækning, ud fra brugerens alder (se supabase/alder.sql
+  // og src/middleware.ts, som sikrer alle har udfyldt en fødselsdato, før
+  // de når hertil).
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("birth_date")
+    .eq("id", user?.id ?? "")
+    .maybeSingle();
+  const userAge = calculateAge(profile?.birth_date ?? null);
+
   // Vælg ét banner tilfældigt, vægtet efter sponsorernes aftalte fordeling
   // (se src/lib/banners.ts og src/app/admin/bannere) - og tæl visningen op,
   // så admin kan se, hvor meget hvert banner reelt bliver vist.
-  const banner = pickWeightedBanner((activeBanners ?? []) as SponsorBanner[]);
+  const eligibleBanners = filterBannersForAge(
+    (activeBanners ?? []) as SponsorBanner[],
+    userAge
+  );
+  const banner = pickWeightedBanner(eligibleBanners);
   if (banner) {
     try {
       await supabase.rpc("increment_banner_impression", { p_id: banner.id });

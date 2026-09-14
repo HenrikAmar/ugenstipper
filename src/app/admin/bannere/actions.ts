@@ -35,12 +35,17 @@ export async function createBanner(
   const linkUrl = String(formData.get("link_url") ?? "").trim();
   const weight = parseInt(String(formData.get("weight") ?? ""), 10);
   const image = formData.get("image") as File | null;
+  const minAgeRaw = String(formData.get("min_age") ?? "").trim();
+  const minAge = minAgeRaw ? parseInt(minAgeRaw, 10) : null;
 
   if (!title || !linkUrl) {
     return { error: "Udfyld både navn og link." };
   }
   if (!Number.isFinite(weight) || weight <= 0) {
     return { error: "Vægt skal være et tal større end 0." };
+  }
+  if (minAgeRaw && (!Number.isFinite(minAge) || (minAge as number) <= 0)) {
+    return { error: "Aldersgrænse skal være et helt tal større end 0 (eller stå tomt)." };
   }
   if (!image || image.size === 0) {
     return { error: "Vælg et billede til banneret." };
@@ -70,6 +75,7 @@ export async function createBanner(
     title,
     link_url: linkUrl,
     weight,
+    min_age: minAge,
     image_url: publicUrlData.publicUrl,
   });
 
@@ -98,9 +104,12 @@ export async function updateBanner(bannerId: string, formData: FormData) {
   const linkUrl = String(formData.get("link_url") ?? "").trim();
   const weight = parseInt(String(formData.get("weight") ?? ""), 10);
   const image = formData.get("image") as File | null;
+  const minAgeRaw = String(formData.get("min_age") ?? "").trim();
+  const minAge = minAgeRaw ? parseInt(minAgeRaw, 10) : null;
   if (!title || !linkUrl || !Number.isFinite(weight) || weight <= 0) return;
+  if (minAgeRaw && (!Number.isFinite(minAge) || (minAge as number) <= 0)) return;
 
-  const update: Record<string, unknown> = { title, link_url: linkUrl, weight };
+  const update: Record<string, unknown> = { title, link_url: linkUrl, weight, min_age: minAge };
 
   if (image && image.size > 0) {
     const extension = image.name.split(".").pop() || "jpg";

@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
-  const { supabaseResponse, user } = await updateSession(request);
+  const { supabaseResponse, user, needsBirthDate } = await updateSession(request);
 
   const path = request.nextUrl.pathname;
   // /regler skal kunne ses uden at være logget ind, så man kan læse reglerne,
@@ -45,6 +45,28 @@ export async function middleware(request: NextRequest) {
   // - "/" viser noget forskelligt afhængig af om man er logget ind eller ej,
   // så den skal IKKE omdirigeres videre her).
   if (user && path === "/login") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    return NextResponse.redirect(url);
+  }
+
+  // Aldersverificering: alle brugere skal have udfyldt deres fødselsdato,
+  // før de kan bruge resten af siden - se src/app/alder og
+  // supabase/alder.sql. Grunden: vi vil ikke risikere at vise
+  // aldersbegrænsede reklamer (fx betting) til nogen under 18. Vi undtager
+  // /alder selv (ellers uendelig omdirigering) og alle de offentlige sider
+  // ovenfor (fx skal /regler kunne læses uden at skulle igennem dette
+  // først, og /api må ALDRIG blokeres - se forklaringen længere oppe).
+  const isAlderPath = path.startsWith("/alder");
+  if (user && needsBirthDate && !isPublicPath && !isAlderPath) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/alder";
+    return NextResponse.redirect(url);
+  }
+
+  // Har allerede udfyldt fødselsdato, men er på vej til /alder (fx et
+  // gammelt åbent faneblad)? Så skal man bare videre til forsiden.
+  if (user && !needsBirthDate && isAlderPath) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);

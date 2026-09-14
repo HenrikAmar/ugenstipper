@@ -63,6 +63,20 @@ export function BannerForm() {
         </span>
       </div>
       <div className="flex flex-col gap-1">
+        <label className="text-xs font-semibold text-text-muted">Aldersgrænse (valgfrit)</label>
+        <input
+          name="min_age"
+          type="number"
+          min={1}
+          placeholder="Fx 18"
+          className="h-10 w-28 rounded-lg border border-border px-3 text-sm"
+        />
+        <span className="text-[10px] text-text-muted">
+          Vises kun til brugere der (ifølge deres fødselsdato) er mindst så gamle - fx 18 til
+          betting-reklamer. Lad stå tomt for ingen aldersgrænse.
+        </span>
+      </div>
+      <div className="flex flex-col gap-1">
         <label className="text-xs font-semibold text-text-muted">Billede</label>
         <input name="image" type="file" accept="image/*" required className="text-sm" />
       </div>

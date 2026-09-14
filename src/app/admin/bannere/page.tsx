@@ -93,6 +93,11 @@ export default async function AdminBannerePage() {
                       {banner.active ? "Aktiv" : "Inaktiv"}
                       {share !== null ? ` · ${share}%` : ""}
                     </span>
+                    {banner.min_age !== null && (
+                      <span className="rounded-full bg-border px-2 py-0.5 text-[10px] font-bold text-text-muted">
+                        {banner.min_age}+
+                      </span>
+                    )}
                   </div>
                   <p className="mt-1 truncate text-[12px] text-text-muted">{banner.link_url}</p>
                   <p className="mt-1 text-[11px] text-text-muted">
@@ -143,6 +148,19 @@ export default async function AdminBannerePage() {
                     type="number"
                     min={1}
                     defaultValue={banner.weight}
+                    className="h-9 w-20 rounded-lg border border-border px-2.5 text-sm"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-semibold text-text-muted">
+                    Aldersgrænse
+                  </label>
+                  <input
+                    name="min_age"
+                    type="number"
+                    min={1}
+                    defaultValue={banner.min_age ?? ""}
+                    placeholder="Ingen"
                     className="h-9 w-20 rounded-lg border border-border px-2.5 text-sm"
                   />
                 </div>
