@@ -104,8 +104,12 @@ export async function submitResult(matchId: string, formData: FormData) {
   const resultAway = parseInt(String(formData.get("result_away") ?? ""), 10);
   if (Number.isNaN(resultHome) || Number.isNaN(resultAway)) return;
 
-  // Selve skrivningen (resultat + genberegning af point) er delt med den
-  // automatiske resultat-hentning - se src/lib/applyMatchResult.ts.
+  // Selve skrivningen (resultat + genberegning af point) ligger for sig i
+  // src/lib/applyMatchResult.ts. Den blev i sin tid skilt ud, fordi der var
+  // planer om automatisk resultat-hentning fra et kamp-API - det blev aldrig
+  // til noget, og ALLE resultater indtastes i dag manuelt her i admin.
+  // Funktionen er stadig det rigtige sted at koble en automatisk hentning på,
+  // hvis I får lyst til at prøve igen.
   await applyMatchResult(matchId, resultHome, resultAway);
 
   revalidatePath("/admin/kampe");

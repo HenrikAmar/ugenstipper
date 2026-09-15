@@ -59,26 +59,35 @@ const FEATURES = [
 // større gevinst, når det præcise bud endelig sidder.
 //
 // Punkt 1 og 3 er ens for begge konkurrencer; kun "Saml point" skal skifte.
+//
+// Teksten er en LISTE af afsnit i stedet for én lang streng. Spiller man
+// begge konkurrencer, får hver sit afsnit med luft imellem - ellers stod de
+// to pointsystemer og flød sammen i én mur af tal.
 function stepsForSports(userSports: Sport[]) {
   const harSuperliga = userSports.includes("superliga");
   const harNfl = userSports.includes("nfl");
 
-  let pointTekst: string;
+  let pointAfsnit: string[];
   if (harSuperliga && harNfl) {
-    pointTekst =
-      "Superliga: 1 point for det rigtige udfald, 2 hvis du også rammer det ene holds måltal - og 5 for det helt præcise resultat. NFL spilles med større tal: 3 point for vinderen, 3 for sejrsmarginen og 3 for hvert holds score, du rammer - plus 10 i bonus, hvis hele resultatet sidder. Helt op til 22 point på én kamp.";
+    pointAfsnit = [
+      "Superliga: 1 point for det rigtige udfald, 2 hvis du også rammer det ene holds måltal - og 5 for det helt præcise resultat.",
+      "NFL spilles med større tal: 3 point for vinderen, 3 for sejrsmarginen og 3 for hvert holds score, du rammer - plus 10 i bonus, hvis hele resultatet sidder. Helt op til 22 point på én kamp.",
+    ];
   } else if (harNfl) {
-    pointTekst =
-      "3 point for den rigtige vinder. 3 point for sejrsmarginen - fx at de vinder med præcis 7. 3 point for hvert holds score, du rammer præcist. Og rammer du hele resultatet, får du 10 point oveni. Touchdown - 22 point på én kamp!";
+    pointAfsnit = [
+      "3 point for den rigtige vinder. 3 point for sejrsmarginen - fx at de vinder med præcis 7. 3 point for hvert holds score, du rammer præcist.",
+      "Og rammer du hele resultatet, får du 10 point oveni. Touchdown - 22 point på én kamp!",
+    ];
   } else {
-    pointTekst =
-      "1 point for det rigtige udfald, 2 point hvis du også rammer det ene holds måltal - eller 5 point i alt, hvis du rammer resultatet helt præcist.";
+    pointAfsnit = [
+      "1 point for det rigtige udfald, 2 point hvis du også rammer det ene holds måltal - eller 5 point i alt, hvis du rammer resultatet helt præcist.",
+    ];
   }
 
   return [
-    STEPS[0],
-    { title: "Saml point", text: pointTekst },
-    STEPS[2],
+    { title: STEPS[0].title, afsnit: [STEPS[0].text] },
+    { title: "Saml point", afsnit: pointAfsnit },
+    { title: STEPS[2].title, afsnit: [STEPS[2].text] },
   ];
 }
 
@@ -201,7 +210,16 @@ export default async function HomePage({
                 <div className="badge flex-shrink-0 bg-accent-2">{i + 1}</div>
                 <div>
                   <h3 className="text-[14px] font-bold">{step.title}</h3>
-                  <p className="mt-1 text-[13px] leading-relaxed text-text-muted">{step.text}</p>
+                  {step.afsnit.map((afsnit, j) => (
+                    <p
+                      key={j}
+                      className={`${
+                        j === 0 ? "mt-1" : "mt-2.5"
+                      } text-[13px] leading-relaxed text-text-muted`}
+                    >
+                      {afsnit}
+                    </p>
+                  ))}
                 </div>
               </div>
             ))}

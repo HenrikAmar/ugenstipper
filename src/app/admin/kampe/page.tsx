@@ -11,7 +11,7 @@ import {
 } from "./actions";
 import type { Match, Round, Sport } from "@/lib/types";
 import { utcToDanishLocalInputValue } from "@/lib/time";
-import { SUPERLIGA_TEAMS } from "@/lib/clubColors";
+import { SUPERLIGA_TEAMS, NFL_TEAMS } from "@/lib/clubColors";
 import { DeleteRoundButton } from "@/components/DeleteRoundButton";
 import { SportTabs } from "@/components/SportTabs";
 import { ALL_SPORTS } from "@/lib/participation";
@@ -19,9 +19,9 @@ import { roundLabel } from "@/lib/rounds";
 
 // Til redigeringsformularen: sørger for at holdets nuværende navn altid er en
 // mulighed i dropdown'en, selv hvis det (fra en gammel kamp) ikke matcher
-// nøjagtigt et af de 12 hold - så vi aldrig overskriver noget ved en fejl.
-function teamOptions(current: string) {
-  return SUPERLIGA_TEAMS.includes(current) ? SUPERLIGA_TEAMS : [current, ...SUPERLIGA_TEAMS];
+// nøjagtigt et af holdene på listen - så vi aldrig overskriver noget ved en fejl.
+function teamOptions(current: string, teams: string[]) {
+  return teams.includes(current) ? teams : [current, ...teams];
 }
 
 // Admin-data (kampe/runder/resultater) må aldrig caches - skal altid være friske.
@@ -65,6 +65,12 @@ export default async function AdminKampePage({
     : { data: [] as Match[] };
 
   const matchList: Match[] = matches ?? [];
+
+  // Hver sport har sin egen holdliste, så admin vælger holdet i stedet for at
+  // skrive det. Det er ikke bare bekvemt: rammer en stavefejl holdnavnet,
+  // mister holdet lydløst sin farve på badge'et (se src/lib/clubColors.ts).
+  // Bonusrunder har stadig fri tekst - de kan indeholde hvem som helst.
+  const teamList = activeRound?.sport === "nfl" ? NFL_TEAMS : SUPERLIGA_TEAMS;
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
@@ -110,9 +116,12 @@ export default async function AdminKampePage({
       <form action={createRound.bind(null, sport)} className="card mt-4 flex flex-wrap items-end gap-3 rounded-xl p-4">
         <div className="flex flex-col gap-1">
           <label className="text-xs font-semibold text-text-muted">Sæson</label>
+          {/* NFL-sæsoner navngives efter ét år ("2026"), fodbold efter to
+              ("2026/27"). Får en runde ved en fejl det forkerte sæsonnavn,
+              havner den i sin egen sæson-gruppe væk fra de andre. */}
           <input
             name="season"
-            defaultValue="2026/27"
+            defaultValue={sport === "nfl" ? "2026" : "2026/27"}
             required
             className="h-10 rounded-lg border border-border px-3 text-sm"
           />
@@ -215,7 +224,7 @@ export default async function AdminKampePage({
                 bevidst UDENFOR denne key, så det holder sin værdi, når man
                 opretter flere kampe med samme kampstart-tidspunkt i træk. */}
             <div key={`${activeRound.id}-${matchList.length}`} className="contents">
-              {activeRound.kind === "liga" && activeRound.sport === "superliga" ? (
+              {activeRound.kind === "liga" ? (
                 <>
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-semibold text-text-muted">Hjemmehold</label>
@@ -228,7 +237,7 @@ export default async function AdminKampePage({
                       <option value="" disabled>
                         Vælg hold
                       </option>
-                      {SUPERLIGA_TEAMS.map((team) => (
+                      {teamList.map((team) => (
                         <option key={team} value={team}>
                           {team}
                         </option>
@@ -246,7 +255,7 @@ export default async function AdminKampePage({
                       <option value="" disabled>
                         Vælg hold
                       </option>
-                      {SUPERLIGA_TEAMS.map((team) => (
+                      {teamList.map((team) => (
                         <option key={team} value={team}>
                           {team}
                         </option>
@@ -300,14 +309,14 @@ export default async function AdminKampePage({
                     action={updateMatch.bind(null, m.id)}
                     className="flex flex-wrap items-end gap-3"
                   >
-                    {activeRound.kind === "liga" && activeRound.sport === "superliga" ? (
+                    {activeRound.kind === "liga" ? (
                       <>
                         <select
                           name="home_team"
                           defaultValue={m.home_team}
                           className="h-9 w-40 rounded-lg border border-border px-2.5 text-sm"
                         >
-                          {teamOptions(m.home_team).map((team) => (
+                          {teamOptions(m.home_team, teamList).map((team) => (
                             <option key={team} value={team}>
                               {team}
                             </option>
@@ -319,7 +328,7 @@ export default async function AdminKampePage({
                           defaultValue={m.away_team}
                           className="h-9 w-40 rounded-lg border border-border px-2.5 text-sm"
                         >
-                          {teamOptions(m.away_team).map((team) => (
+                          {teamOptions(m.away_team, teamList).map((team) => (
                             <option key={team} value={team}>
                               {team}
                             </option>

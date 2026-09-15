@@ -127,6 +127,13 @@ export default async function StillingPage({
   }
 
   const inviteRanking = (inviteTop ?? []) as InviteRow[];
+
+  // En "Top 3" med ét enkelt navn i ser tom og lidt trist ud - listen giver
+  // først mening, når der faktisk er en top at kigge på. Derfor vises den
+  // slet ikke, før mindst tre har fået en invitation godkendt. Sænk tallet
+  // her, hvis I hellere vil vise den tidligere.
+  const MIN_INVITERE_FOR_TOPLISTE = 3;
+  const visInviteToplisten = inviteRanking.length >= MIN_INVITERE_FOR_TOPLISTE;
   const tipRows = (tips ?? []) as unknown as TipRow[];
   const roundsList = (roundsData ?? []) as RoundLite[];
 
@@ -341,7 +348,7 @@ export default async function StillingPage({
         />
       ))}
 
-      {inviteRanking.length > 0 && (
+      {visInviteToplisten && (
         <div className="mt-6 px-5">
           <h2 className="mb-2 text-[13px] font-bold text-text-muted">Top 3 – Inviter en ven</h2>
           <div className="flex flex-col gap-2">

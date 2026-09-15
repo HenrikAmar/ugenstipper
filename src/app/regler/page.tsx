@@ -49,12 +49,25 @@ export default function ReglerPage() {
         </section>
 
         <section className="card rounded-xl p-4">
+          <h2 className="mb-2 text-[15px] font-bold">Bonusrunder (kun Superliga)</h2>
+          <p className="text-[13.5px] leading-relaxed text-text-muted">
+            Ind imellem opretter vi en bonusrunde i Superligaen - f.eks. når et dansk hold spiller
+            i Europa. Det er ren lir: bonusrunde-point tæller ikke med i den rigtige stilling. De
+            har deres egen &bdquo;Bonusrunde-stilling&rdquo; nederst på Stilling-siden, opdelt i
+            egne bonus-sæsoner.
+          </p>
+          <p className="mt-2.5 text-[13.5px] leading-relaxed text-text-muted">
+            Spiller du kun NFL, møder du dem slet ikke - der er indtil videre ingen bonusrunder i
+            NFL-konkurrencen.
+          </p>
+        </section>
+
+        <section className="card rounded-xl p-4">
           <h2 className="mb-2 text-[15px] font-bold">NFL</h2>
           <p className="text-[13.5px] leading-relaxed text-text-muted">
             Ved siden af Superliga-konkurrencen kører vi også en NFL-konkurrence - samme
             spilform, samme login. De to konkurrencer (og deres miniligaer) holdes helt adskilt
-            fra hinanden. Point optjenes efter de samme principper som ovenfor, men
-            Resultaterne indtastes manuelt af os efter hver runde.
+            fra hinanden. Resultaterne indtastes manuelt af os efter hver runde.
           </p>
           <p className="mt-2.5 text-[13.5px] leading-relaxed text-text-muted">
             NFL har sit eget pointsystem, fordi scorerne er langt højere og mere spredte end i
@@ -89,15 +102,6 @@ export default function ReglerPage() {
           </p>
         </section>
 
-        <section className="card rounded-xl p-4">
-          <h2 className="mb-2 text-[15px] font-bold">Bonusrunder</h2>
-          <p className="text-[13.5px] leading-relaxed text-text-muted">
-            Ind imellem opretter vi en bonusrunde - f.eks. når et dansk hold spiller i Europa. Det
-            er ren lir: bonusrunde-point tæller ikke med i den rigtige stilling. De har deres egen
-            &bdquo;Bonusrunde-stilling&rdquo; nederst på Stilling-siden, opdelt i egne
-            bonus-sæsoner.
-          </p>
-        </section>
 
         <section className="card rounded-xl p-4">
           <h2 className="mb-2 text-[15px] font-bold">Miniligaer</h2>
