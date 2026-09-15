@@ -33,6 +33,7 @@ export function MatchCard({
   value,
   onChange,
   live,
+  pladsTilLangeNavne = false,
 }: {
   match: Match;
   existingTip: Tip | undefined;
@@ -44,10 +45,57 @@ export function MatchCard({
   // src/lib/useNflLive.ts). Den hentes til visning og gemmes aldrig, så den
   // kan ikke udløse point. Er kampen afgjort, vinder det officielle resultat.
   live?: LiveKamp;
+  /**
+   * To forskellige opstillinger af samme kort:
+   *
+   *  false (standard): holdnavn - tal - holdnavn på ÉN række. Kompakt, og
+   *    fint til korte navne som "Brøndby IF" og "AGF".
+   *
+   *  true: navnene får hele rækken for sig selv, og tallene flytter ned
+   *    under dem. Nødvendigt ved lange navne som "Los Angeles Chargers" og
+   *    "Washington Commanders" - ellers klemmer tallene navnene så meget
+   *    sammen, at man kun kan læse "Los Angel..." og ikke kan se, hvem man
+   *    egentlig tipper på.
+   *
+   * TipRoundForm afgør det for en hel runde ad gangen, så alle kort i samme
+   * runde ser ens ud.
+   */
+  pladsTilLangeNavne?: boolean;
 }) {
   const locked = new Date(match.kickoff_at) <= new Date();
   const finished = match.result_home !== null && match.result_away !== null;
   const visLive = Boolean(live) && !finished;
+
+  // Navnet holdes altid på ÉN linje og klippes af med "..." , hvis det er for
+  // langt - to linjer rodede kortene for meget til. Til gengæld har navnet i
+  // den luftige opstilling hele rækken til rådighed i stedet for kun en
+  // tredjedel, så der bliver klippet langt mindre af end før. Skriften er en
+  // anelse mindre dér, hvilket giver et par tegn mere at gøre godt med.
+  const navneStil = pladsTilLangeNavne
+    ? "truncate text-[13.5px] font-semibold"
+    : "truncate text-sm font-semibold";
+
+  const hjemmeNavn = (
+    <div
+      className={`flex min-w-0 items-center gap-2.5 ${
+        pladsTilLangeNavne ? "flex-1" : ""
+      }`}
+    >
+      <TeamBadge team={match.home_team} />
+      <span className={navneStil}>{match.home_team}</span>
+    </div>
+  );
+
+  const udeNavn = (
+    <div
+      className={`flex min-w-0 items-center justify-end gap-2.5 ${
+        pladsTilLangeNavne ? "flex-1" : ""
+      }`}
+    >
+      <span className={`${navneStil} text-right`}>{match.away_team}</span>
+      <TeamBadge team={match.away_team} />
+    </div>
+  );
 
   if (locked) {
     // "Dit tip"-linjen og "kampen er i gang"-linjen skal fremstå lige så
@@ -55,31 +103,40 @@ export function MatchCard({
     // kamp" (ingen tip at fremhæve) beholder den mindre skriftstørrelse.
     const footerTextSize = finished && !existingTip ? "text-[11.5px]" : "text-sm";
 
+    const resultat = (
+      <div
+        className={`flex items-center gap-2 font-heading text-base font-bold ${
+          visLive ? "text-accent" : "text-text-muted"
+        }`}
+      >
+        {/* Mens kampen er i gang (ikke længere kun "låst", men heller ikke
+            afgjort endnu) skal felterne stå tomme - de må aldrig vise
+            brugerens eget tip som om det var stillingen. Har vi en
+            live-stilling, vises DEN i stedet for stregerne. */}
+        <span>{finished ? match.result_home : visLive ? live!.hjemmeScore : "–"}</span>
+        <span className="text-[#B7BEC9]">–</span>
+        <span>{finished ? match.result_away : visLive ? live!.udeScore : "–"}</span>
+      </div>
+    );
+
     return (
       <div className="card flex flex-col gap-2.5 rounded-card border-border bg-surface-2 p-4 opacity-80">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <TeamBadge team={match.home_team} />
-            <span className="truncate text-sm font-semibold">{match.home_team}</span>
+        {pladsTilLangeNavne ? (
+          <>
+            <div className="flex items-center justify-between gap-2">
+              {hjemmeNavn}
+              {udeNavn}
+            </div>
+            <div className="flex justify-center">{resultat}</div>
+          </>
+        ) : (
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+            {hjemmeNavn}
+            {resultat}
+            {udeNavn}
           </div>
-          <div
-            className={`flex items-center gap-2 font-heading text-base font-bold ${
-              visLive ? "text-accent" : "text-text-muted"
-            }`}
-          >
-            {/* Mens kampen er i gang (ikke længere kun "låst", men heller ikke
-                afgjort endnu) skal felterne stå tomme - de må aldrig vise
-                brugerens eget tip som om det var stillingen. Har vi en
-                live-stilling, vises DEN i stedet for stregerne. */}
-            <span>{finished ? match.result_home : visLive ? live!.hjemmeScore : "–"}</span>
-            <span className="text-[#B7BEC9]">–</span>
-            <span>{finished ? match.result_away : visLive ? live!.udeScore : "–"}</span>
-          </div>
-          <div className="flex min-w-0 items-center justify-end gap-2.5">
-            <span className="truncate text-sm font-semibold">{match.away_team}</span>
-            <TeamBadge team={match.away_team} />
-          </div>
-        </div>
+        )}
+
         <div className="flex items-center justify-between gap-2 font-semibold text-text-muted">
           <span className={footerTextSize}>
             {finished
@@ -115,33 +172,41 @@ export function MatchCard({
     value.home === (existingTip?.tip_home?.toString() ?? "") &&
     value.away === (existingTip?.tip_away?.toString() ?? "");
 
+  const felter = (
+    <div className="flex items-center gap-1.5">
+      <input
+        inputMode="numeric"
+        value={value.home}
+        onChange={(e) => onChange(e.target.value.replace(/[^0-9]/g, ""), value.away)}
+        className="h-[34px] w-[34px] rounded-lg border border-accent-2 bg-accent-tint text-center font-heading text-[15px] font-bold text-accent"
+      />
+      <span className="font-bold text-[#B7BEC9]">–</span>
+      <input
+        inputMode="numeric"
+        value={value.away}
+        onChange={(e) => onChange(value.home, e.target.value.replace(/[^0-9]/g, ""))}
+        className="h-[34px] w-[34px] rounded-lg border border-accent-2 bg-accent-tint text-center font-heading text-[15px] font-bold text-accent"
+      />
+    </div>
+  );
+
   return (
     <div className="card flex flex-col gap-2.5 rounded-card p-4 shadow-sm">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <TeamBadge team={match.home_team} />
-          <span className="truncate text-sm font-semibold">{match.home_team}</span>
+      {pladsTilLangeNavne ? (
+        <>
+          <div className="flex items-center justify-between gap-2">
+            {hjemmeNavn}
+            {udeNavn}
+          </div>
+          <div className="flex justify-center">{felter}</div>
+        </>
+      ) : (
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+          {hjemmeNavn}
+          {felter}
+          {udeNavn}
         </div>
-        <div className="flex items-center gap-1.5">
-          <input
-            inputMode="numeric"
-            value={value.home}
-            onChange={(e) => onChange(e.target.value.replace(/[^0-9]/g, ""), value.away)}
-            className="h-[34px] w-[34px] rounded-lg border border-accent-2 bg-accent-tint text-center font-heading text-[15px] font-bold text-accent"
-          />
-          <span className="font-bold text-[#B7BEC9]">–</span>
-          <input
-            inputMode="numeric"
-            value={value.away}
-            onChange={(e) => onChange(value.home, e.target.value.replace(/[^0-9]/g, ""))}
-            className="h-[34px] w-[34px] rounded-lg border border-accent-2 bg-accent-tint text-center font-heading text-[15px] font-bold text-accent"
-          />
-        </div>
-        <div className="flex min-w-0 items-center justify-end gap-2.5">
-          <span className="truncate text-sm font-semibold">{match.away_team}</span>
-          <TeamBadge team={match.away_team} />
-        </div>
-      </div>
+      )}
 
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold text-text-muted">

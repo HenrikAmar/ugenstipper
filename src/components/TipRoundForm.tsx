@@ -38,6 +38,21 @@ export function TipRoundForm({
     );
   const live = useNflLive(kanVaereLive);
 
+  // Lange holdnavne ("Los Angeles Chargers", "Washington Commanders") bliver
+  // klemt ihjel, når tallene står midt imellem dem - man kan kun læse
+  // "Los Angel...". Er der bare ét langt navn i runden, får ALLE kortene i
+  // runden den luftige opstilling, hvor navnene har rækken for sig selv og
+  // tallene står under. Så ser kortene ens ud hele vejen ned.
+  //
+  // Bemærk at det afgøres af navnene, ikke af sporten: en Superliga-runde med
+  // korte navne beholder den kompakte udgave, mens en bonusrunde med fx
+  // "Borussia Mönchengladbach" automatisk får luften med.
+  const MAKS_NAVNELAENGDE = 15;
+  const pladsTilLangeNavne = matches.some(
+    (m) =>
+      m.home_team.length > MAKS_NAVNELAENGDE || m.away_team.length > MAKS_NAVNELAENGDE
+  );
+
   const [values, setValues] = useState<Record<string, TipValue>>(() => {
     const initial: Record<string, TipValue> = {};
     for (const match of matches) {
@@ -149,6 +164,7 @@ export function TipRoundForm({
             value={values[match.id] ?? { home: "", away: "" }}
             onChange={(home, away) => handleChange(match.id, home, away)}
             live={live[match.id]}
+            pladsTilLangeNavne={pladsTilLangeNavne}
           />
         ))}
       </div>
