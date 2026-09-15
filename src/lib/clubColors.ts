@@ -1,7 +1,17 @@
-// Vejledende klubfarver til de runde "badges" med holdinitialer.
-// Farverne er baseret på hvert holds velkendte trøje-/klubidentitet (offentligt
-// kendt, ikke officielle brand-hexkoder fra klubberne selv) - så de er til at
-// kende, uden at vi bruger rigtige klublogoer (undgår varemærke-problemer).
+// Klubfarver til de runde "badges" med holdinitialer.
+//
+// Farverne er holdenes velkendte trøjefarver - ikke klubbernes officielle
+// brand-filer eller logoer, så vi undgår varemærke-problemer. Superliga-
+// farverne er gennemgået og bekræftet af Henrik (sep 2026); tidligere var
+// flere af dem gæt, og fx stod Viborg og OB fejlagtigt som sorte.
+//
+// Bemærk den løbende afvejning: mange danske klubber spiller i blåt og hvidt,
+// og rammer man farven 100 % for dem alle, bliver badge'erne umulige at kende
+// fra hinanden på en rundeoversigt. Derfor får de hver sin nuance, og
+// kant- og skriftfarven bruges til at skille dem ad - i stedet for at give en
+// klub en farve, den slet ikke har. Samme princip er brugt til NFL's mange
+// marineblå hold længere nede.
+//
 // Ret gerne til, hvis en farve ikke rammer helt rigtigt for dig.
 
 interface ClubStyle {
@@ -25,69 +35,84 @@ const CLUBS: ClubStyle[] = [
   {
     bg: "#FFD400",
     text: "#16233D",
+    border: "#003A70",
+    // gul/blå - blå kant, så den ikke ligner Horsens' gule
     code: "BIF",
     aliases: ["brondby", "brøndby", "brondby if", "brøndby if", "bif"],
   },
   {
     bg: "#D0021B",
     text: "#FFFFFF",
+    border: "#111111",
+    // rød/sort - sort kant adskiller fra Silkeborgs og FCNs røde
     code: "FCM",
     aliases: ["fcm", "fc midtjylland", "midtjylland"],
   },
   {
-    bg: "#E4572E",
+    bg: "#CF010E",
     text: "#FFFFFF",
+    // rød
     code: "FCN",
     aliases: ["fcn", "fc nordsjælland", "fc nordsjaelland", "nordsjælland", "nordsjaelland"],
   },
   {
-    bg: "#111111",
+    bg: "#005B9E",
     text: "#FFFFFF",
+    border: "#FFFFFF",
+    // blå/hvid - hvid kant antyder striberne
     code: "OB",
     aliases: ["ob", "odense boldklub", "odense"],
   },
   {
-    bg: "#1B2A4A",
-    text: "#FFFFFF",
+    bg: "#FFFFFF",
+    text: "#111111",
+    border: "#111111",
+    // hvid og sort
     code: "AGF",
     aliases: ["agf", "agf aarhus", "aarhus gymnastikforening"],
   },
   {
-    bg: "#F0B429",
-    text: "#16233D",
+    bg: "#FFD200",
+    text: "#111111",
     border: "#111111",
+    // gul/sort
     code: "ACH",
     aliases: ["ac horsens", "horsens"],
   },
   {
-    bg: "#C1121F",
+    bg: "#C8102E",
     text: "#FFFFFF",
+    border: "#FFFFFF",
+    // rød - hvid kant adskiller den fra FCM's røde
     code: "SIF",
     aliases: ["silkeborg", "silkeborg if"],
   },
   {
-    bg: "#1A1A1A",
-    text: "#FFFFFF",
-    border: "#B3122A",
+    bg: "#81C0FF",
+    text: "#16233D",
+    border: "#16233D",
+    // lyseblå - mørk ring adskiller den fra SønderjyskEs lyseblå
     code: "RFC",
     aliases: ["randers", "randers fc", "randers freja"],
   },
   {
-    bg: "#111111",
+    bg: "#007A33",
     text: "#FFFFFF",
-    border: "#FFFFFF",
+    // grøn
     code: "VFF",
     aliases: ["viborg", "viborg ff"],
   },
   {
-    bg: "#4FA8DE",
+    bg: "#0F3CA0",
     text: "#FFFFFF",
+    // kongeblå
     code: "LBK",
     aliases: ["lyngby", "lyngby bk", "lyngby boldklub"],
   },
   {
-    bg: "#A6192E",
-    text: "#FFFFFF",
+    bg: "#5BC2E7",
+    text: "#16233D",
+    // lyseblå - mørk skrift, ellers kan man ikke læse den
     code: "SØN",
     aliases: ["sonderjyske", "sønderjyske", "sonderjyske fodbold"],
   },
@@ -132,40 +157,40 @@ const CLUBS: ClubStyle[] = [
   // Flere hold deler næsten samme grundfarve (der er rigtig mange marineblå
   // hold i NFL). Dér skiller vi dem ad på skrift- og kantfarven i stedet for
   // at finde på en farve, holdet ikke har.
-  { bg: "#97233F", text: "#FFFFFF", code: "ARI", aliases: ["arizona cardinals", "cardinals", "arizona", "ari"] },
-  { bg: "#A71930", text: "#FFFFFF", border: "#101820", code: "ATL", aliases: ["atlanta falcons", "falcons", "atlanta", "atl"] },
-  { bg: "#241773", text: "#FFFFFF", code: "BAL", aliases: ["baltimore ravens", "ravens", "baltimore", "bal"] },
-  { bg: "#00338D", text: "#FFFFFF", border: "#C60C30", code: "BUF", aliases: ["buffalo bills", "bills", "buffalo", "buf"] },
-  { bg: "#0085CA", text: "#FFFFFF", border: "#101820", code: "CAR", aliases: ["carolina panthers", "panthers", "carolina", "car"] },
-  { bg: "#0B162A", text: "#FFFFFF", border: "#C83803", code: "CHI", aliases: ["chicago bears", "bears", "chicago", "chi"] },
-  { bg: "#FB4F14", text: "#101820", border: "#101820", code: "CIN", aliases: ["cincinnati bengals", "bengals", "cincinnati", "cin"] },
-  { bg: "#311D00", text: "#FFFFFF", border: "#FF3C00", code: "CLE", aliases: ["cleveland browns", "browns", "cleveland", "cle"] },
-  { bg: "#041E42", text: "#FFFFFF", border: "#869397", code: "DAL", aliases: ["dallas cowboys", "cowboys", "dallas", "dal"] },
-  { bg: "#002244", text: "#FB4F14", border: "#FB4F14", code: "DEN", aliases: ["denver broncos", "broncos", "denver", "den"] },
-  { bg: "#0076B6", text: "#FFFFFF", border: "#B0B7BC", code: "DET", aliases: ["detroit lions", "lions", "detroit", "det"] },
-  { bg: "#203731", text: "#FFB612", code: "GB", aliases: ["green bay packers", "packers", "green bay", "gb"] },
-  { bg: "#03202F", text: "#FFFFFF", border: "#A71930", code: "HOU", aliases: ["houston texans", "texans", "houston", "hou"] },
+  { bg: "#A40227", text: "#FFFFFF", code: "ARI", aliases: ["arizona cardinals", "cardinals", "arizona", "ari"] },
+  { bg: "#A71930", text: "#FFFFFF", border: "#000000", code: "ATL", aliases: ["atlanta falcons", "falcons", "atlanta", "atl"] },
+  { bg: "#29126F", text: "#FFFFFF", code: "BAL", aliases: ["baltimore ravens", "ravens", "baltimore", "bal"] },
+  { bg: "#00338D", text: "#FFFFFF", border: "#D50A0A", code: "BUF", aliases: ["buffalo bills", "bills", "buffalo", "buf"] },
+  { bg: "#0085CA", text: "#FFFFFF", border: "#000000", code: "CAR", aliases: ["carolina panthers", "panthers", "carolina", "car"] },
+  { bg: "#0B1C3A", text: "#FFFFFF", border: "#E64100", code: "CHI", aliases: ["chicago bears", "bears", "chicago", "chi"] },
+  { bg: "#FB4F14", text: "#000000", border: "#000000", code: "CIN", aliases: ["cincinnati bengals", "bengals", "cincinnati", "cin"] },
+  { bg: "#472A08", text: "#FFFFFF", border: "#FF3C00", code: "CLE", aliases: ["cleveland browns", "browns", "cleveland", "cle"] },
+  { bg: "#002A5C", text: "#FFFFFF", border: "#B0B7BC", code: "DAL", aliases: ["dallas cowboys", "cowboys", "dallas", "dal"] },
+  { bg: "#0A2343", text: "#FC4C02", border: "#FC4C02", code: "DEN", aliases: ["denver broncos", "broncos", "denver", "den"] },
+  { bg: "#0076B6", text: "#FFFFFF", border: "#BBBBBB", code: "DET", aliases: ["detroit lions", "lions", "detroit", "det"] },
+  { bg: "#204E32", text: "#FFB612", code: "GB", aliases: ["green bay packers", "packers", "green bay", "gb"] },
+  { bg: "#021018", text: "#FFFFFF", border: "#EB0028", code: "HOU", aliases: ["houston texans", "texans", "houston", "hou"] },
   // Colts spiller notorisk i hvidt med blå hestesko - derfor hvid bund,
   // ligesom FCK ovenfor, så de ikke drukner blandt de mange blå hold.
-  { bg: "#FFFFFF", text: "#002C5F", border: "#002C5F", code: "IND", aliases: ["indianapolis colts", "colts", "indianapolis", "ind"] },
-  { bg: "#006778", text: "#FFFFFF", border: "#D7A22A", code: "JAX", aliases: ["jacksonville jaguars", "jaguars", "jacksonville", "jax", "jac"] },
-  { bg: "#E31837", text: "#FFFFFF", border: "#FFB81C", code: "KC", aliases: ["kansas city chiefs", "chiefs", "kansas city", "kc"] },
+  { bg: "#003B75", text: "#FFFFFF", border: "#FFFFFF", code: "IND", aliases: ["indianapolis colts", "colts", "indianapolis", "ind"] },
+  { bg: "#007487", text: "#FFFFFF", border: "#D7A22A", code: "JAX", aliases: ["jacksonville jaguars", "jaguars", "jacksonville", "jax", "jac"] },
+  { bg: "#E31837", text: "#FFFFFF", border: "#FFB612", code: "KC", aliases: ["kansas city chiefs", "chiefs", "kansas city", "kc"] },
   { bg: "#000000", text: "#A5ACAF", border: "#A5ACAF", code: "LV", aliases: ["las vegas raiders", "raiders", "las vegas", "oakland raiders", "lv"] },
-  { bg: "#0080C6", text: "#FFFFFF", border: "#FFC20E", code: "LAC", aliases: ["los angeles chargers", "chargers", "san diego chargers", "lac"] },
-  { bg: "#003594", text: "#FFFFFF", border: "#FFA300", code: "LAR", aliases: ["los angeles rams", "rams", "st louis rams", "lar"] },
-  { bg: "#008E97", text: "#FFFFFF", border: "#FC4C02", code: "MIA", aliases: ["miami dolphins", "dolphins", "miami", "mia"] },
+  { bg: "#0080B4", text: "#FFFFFF", border: "#FFC52F", code: "LAC", aliases: ["los angeles chargers", "chargers", "san diego chargers", "lac"] },
+  { bg: "#003594", text: "#FFFFFF", border: "#FFA500", code: "LAR", aliases: ["los angeles rams", "rams", "st louis rams", "lar"] },
+  { bg: "#008E97", text: "#FFFFFF", border: "#F58220", code: "MIA", aliases: ["miami dolphins", "dolphins", "miami", "mia"] },
   { bg: "#4F2683", text: "#FFC62F", code: "MIN", aliases: ["minnesota vikings", "vikings", "minnesota", "min"] },
   { bg: "#002244", text: "#FFFFFF", border: "#C60C30", code: "NE", aliases: ["new england patriots", "patriots", "new england", "ne"] },
   // Saints vendes om (guld bund, sort skrift), så de ikke ligner Steelers.
   { bg: "#D3BC8D", text: "#101820", code: "NO", aliases: ["new orleans saints", "saints", "new orleans"] },
-  { bg: "#0B2265", text: "#FFFFFF", border: "#A71930", code: "NYG", aliases: ["new york giants", "giants", "nyg"] },
+  { bg: "#0B2340", text: "#FFFFFF", border: "#A71930", code: "NYG", aliases: ["new york giants", "giants", "nyg"] },
   { bg: "#125740", text: "#FFFFFF", code: "NYJ", aliases: ["new york jets", "jets", "nyj"] },
   { bg: "#004C54", text: "#FFFFFF", border: "#A5ACAF", code: "PHI", aliases: ["philadelphia eagles", "eagles", "philadelphia", "phi"] },
-  { bg: "#101820", text: "#FFB612", code: "PIT", aliases: ["pittsburgh steelers", "steelers", "pittsburgh", "pit"] },
+  { bg: "#27251F", text: "#FFB612", code: "PIT", aliases: ["pittsburgh steelers", "steelers", "pittsburgh", "pit"] },
   { bg: "#AA0000", text: "#FFFFFF", border: "#B3995D", code: "SF", aliases: ["san francisco 49ers", "49ers", "san francisco", "niners", "sf"] },
   { bg: "#002244", text: "#69BE28", border: "#69BE28", code: "SEA", aliases: ["seattle seahawks", "seahawks", "seattle", "sea"] },
   { bg: "#D50A0A", text: "#FFFFFF", border: "#FF7900", code: "TB", aliases: ["tampa bay buccaneers", "buccaneers", "tampa bay", "bucs"] },
-  { bg: "#0C2340", text: "#4B92DB", border: "#4B92DB", code: "TEN", aliases: ["tennessee titans", "titans", "tennessee", "ten"] },
+  { bg: "#0C2C56", text: "#4B92DB", border: "#4B92DB", code: "TEN", aliases: ["tennessee titans", "titans", "tennessee", "ten"] },
   { bg: "#5A1414", text: "#FFB612", code: "WAS", aliases: ["washington commanders", "commanders", "washington", "was", "wsh"] },
 ];
 
