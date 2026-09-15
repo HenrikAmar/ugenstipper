@@ -1,9 +1,15 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Round } from "@/lib/types";
+import type { Round, Sport } from "@/lib/types";
 
-// Fælles visningsnavn for en runde, brugt flere steder i appen.
-export function roundLabel(r: Pick<Round, "kind" | "number">) {
-  return r.kind === "bonus" ? `Bonus runde ${r.number}` : `Runde ${r.number}`;
+// Fælles visningsnavn for en runde, brugt flere steder i appen. Præfikset
+// med "NFL" for NFL-runder, så de ikke kan forveksles med Superliga-runder
+// samme sted (fx i "Rundevindere" på statistik-siden, hvor begge sporte kan
+// optræde blandet).
+export function roundLabel(r: Pick<Round, "kind" | "number" | "sport">) {
+  const prefix = r.sport === "nfl" ? "NFL " : "";
+  return r.kind === "bonus"
+    ? `${prefix}Bonus runde ${r.number}`
+    : `${prefix}Runde ${r.number}`;
 }
 
 // Hvor længe en overstået runde stadig må ses/tippes på, efter dens sidste
@@ -47,7 +53,8 @@ function sleep(ms: number) {
 }
 
 export async function getTippableRounds(
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  sport: Sport
 ): Promise<Round[]> {
   let current: Round | null = null;
   let bonusRoundsRaw: Round[] | null = null;
@@ -61,8 +68,13 @@ export async function getTippableRounds(
     // De to opslag herunder er uafhængige af hinanden - kør dem samtidig i
     // stedet for efter hinanden, det gør siden mærkbart hurtigere at åbne.
     const [current_, bonus_] = await Promise.all([
-      supabase.from("rounds").select("*").eq("is_current", true).maybeSingle(),
-      supabase.from("rounds").select("*").eq("kind", "bonus"),
+      supabase
+        .from("rounds")
+        .select("*")
+        .eq("is_current", true)
+        .eq("sport", sport)
+        .maybeSingle(),
+      supabase.from("rounds").select("*").eq("kind", "bonus").eq("sport", sport),
     ]);
     current = current_.data;
     bonusRoundsRaw = bonus_.data;
@@ -117,6 +129,7 @@ export async function getTippableRounds(
       .select("*")
       .eq("kind", "liga")
       .eq("season", current.season)
+      .eq("sport", sport)
       .gte("number", current.number)
       .lte("number", current.number + 6)
       .order("number", { ascending: true }),
@@ -128,6 +141,7 @@ export async function getTippableRounds(
       .select("*")
       .eq("kind", "liga")
       .eq("season", current.season)
+      .eq("sport", sport)
       .eq("number", current.number - 1)
       .maybeSingle(),
   ]);

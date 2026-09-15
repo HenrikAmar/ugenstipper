@@ -2,10 +2,13 @@ import { createClient } from "@/lib/supabase/server";
 import { TeamBadge } from "@/components/TeamBadge";
 import { BottomNav } from "@/components/BottomNav";
 import { AppHeader } from "@/components/AppHeader";
+import { SportTabs } from "@/components/SportTabs";
+import { getParticipantIds, getUserSports, resolveSport } from "@/lib/participation";
 import { MiniligaStanding } from "@/components/MiniligaStanding";
 import { StandingList } from "@/components/StandingList";
 import { SeasonSelect } from "@/components/SeasonSelect";
 import { type RankRow } from "@/lib/ranking";
+import type { Sport } from "@/lib/types";
 import Link from "next/link";
 
 // Stillingen ændrer sig når admin indtaster resultater - må ikke caches.
@@ -17,13 +20,17 @@ interface RoundLite {
   season: string;
   kind: "liga" | "bonus";
   is_current: boolean;
+  sport: Sport;
   created_at: string;
 }
 
 interface TipRow {
   user_id: string;
   points: number | null;
-  matches: { round_id: string; rounds: { kind: "liga" | "bonus"; season: string } | null } | null;
+  matches: {
+    round_id: string;
+    rounds: { kind: "liga" | "bonus"; season: string; sport: Sport } | null;
+  } | null;
 }
 
 interface InviteRow {
@@ -60,12 +67,17 @@ async function withRetry<T>(
 export default async function StillingPage({
   searchParams,
 }: {
-  searchParams: { visning?: string; saeson?: string; bonusSaeson?: string };
+  searchParams: { visning?: string; saeson?: string; bonusSaeson?: string; sport?: string };
 }) {
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Siden viser kun konkurrencer, brugeren selv har valgt til - peger
+  // ?sport= på en, han har fravalgt, falder vi tilbage til hans egen.
+  const userSports = await getUserSports(supabase, user?.id);
+  const sport: Sport = resolveSport(searchParams.sport, userSports);
 
   const visning =
     searchParams.visning === "runde"
@@ -82,10 +94,15 @@ export default async function StillingPage({
   ] = await Promise.all([
     withRetry(() => supabase.from("profiles").select("id, display_name, avatar_color")),
     withRetry(() =>
-      supabase.from("rounds").select("id, number, season, kind, is_current, created_at")
+      supabase
+        .from("rounds")
+        .select("id, number, season, kind, is_current, sport, created_at")
+        .eq("sport", sport)
     ),
     withRetry(() =>
-      supabase.from("tips").select("user_id, points, matches(round_id, rounds(kind, season))")
+      supabase
+        .from("tips")
+        .select("user_id, points, matches(round_id, rounds(kind, season, sport))")
     ),
     supabase
       .from("invite_leaderboard")
@@ -145,6 +162,10 @@ export default async function StillingPage({
     if (tip.points === null) continue;
     const roundInfo = tip.matches?.rounds;
     if (!roundInfo) continue;
+    // KRITISK: tips-forespørgslen ovenfor henter ALLE brugerens tips på
+    // tværs af begge sporte (ikke sport-scoped i selve forespørgslen) - uden
+    // dette tjek ville Superliga- og NFL-point blive lagt sammen i samme sum.
+    if (roundInfo.sport !== sport) continue;
 
     if (roundInfo.kind === "bonus") {
       if (selectedBonusSeason !== null && roundInfo.season === selectedBonusSeason) {
@@ -167,23 +188,36 @@ export default async function StillingPage({
     totals.set(tip.user_id, (totals.get(tip.user_id) ?? 0) + tip.points);
   }
 
-  const ranking: RankRow[] = (profiles ?? [])
+  // Kun tilmeldte må stå på stillingen. For Superliga er alle med (så
+  // participantIds er null og der filtreres ikke) - for NFL er det kun dem,
+  // der aktivt har trykket "Vær med", så stillingen ikke fyldes op med
+  // 0-point-rækker fra folk, der ikke spiller NFL. Se src/lib/participation.ts.
+  const participantIds = await getParticipantIds(supabase, sport);
+  const eligibleProfiles = (profiles ?? []).filter((p) => participantIds.has(p.id));
+
+  const ranking: RankRow[] = eligibleProfiles
     .map((p) => ({ ...p, points: totals.get(p.id) ?? 0 }))
     .sort((a, b) => b.points - a.points);
 
   // "All time" er erstattet af pr. bonus-sæson - kun brugere med mindst ét
-  // bonuspoint i den valgte bonus-sæson vises.
-  const bonusRanking: RankRow[] = (profiles ?? [])
+  // bonuspoint i den valgte bonus-sæson vises. Samme tilmeldings-regel som
+  // den almindelige stilling ovenfor.
+  const bonusRanking: RankRow[] = eligibleProfiles
     .map((p) => ({ ...p, points: bonusTotals.get(p.id) ?? 0 }))
     .filter((p) => p.points > 0)
     .sort((a, b) => b.points - a.points);
 
   // Man kan nu være med i flere miniligaer ad gangen - hent alle
   // medlemskaber og byg én stilling pr. miniliga i stedet for kun én.
+  // Miniligaer er helt adskilte pr. sport (se supabase/nfl.sql) - "!inner"
+  // er nødvendigt her for at filtrere på den JOINEDE mini_leagues.sport,
+  // ikke bare inde i det indlejrede objekt (en almindelig .eq() uden
+  // "!inner" ville ikke begrænse de YDRE rækker fra mini_league_members).
   const { data: memberships } = await supabase
     .from("mini_league_members")
-    .select("league_id, mini_leagues(name)")
-    .eq("user_id", user?.id ?? "");
+    .select("league_id, mini_leagues!inner(name, sport)")
+    .eq("user_id", user?.id ?? "")
+    .eq("mini_leagues.sport", sport);
 
   const miniligaStandings = await Promise.all(
     ((memberships ?? []) as unknown as { league_id: string; mini_leagues: { name: string } | null }[]).map(
@@ -207,6 +241,7 @@ export default async function StillingPage({
     visning: searchParams.visning,
     saeson: searchParams.saeson,
     bonusSaeson: searchParams.bonusSaeson,
+    sport,
   };
 
   return (
@@ -223,6 +258,7 @@ export default async function StillingPage({
           </p>
         }
       />
+      <SportTabs activeSport={sport} userSports={userSports} basePath="/stilling" />
 
       {ligaSeasons.length > 1 && (
         <div className="px-5 pt-3">
@@ -239,7 +275,7 @@ export default async function StillingPage({
       {isViewingActiveSeason && (
         <div className="flex gap-2 px-5 py-3.5">
           {previousRound && (
-            <Link href="/stilling?visning=forrige"
+            <Link href={`/stilling?sport=${sport}&visning=forrige`}
               className={`pill ${
                 visning === "forrige" ? "bg-navy text-white" : "border border-border text-text-muted"
               }`}
@@ -247,14 +283,14 @@ export default async function StillingPage({
               Forrige runde
             </Link>
           )}
-          <Link href="/stilling?visning=samlet"
+          <Link href={`/stilling?sport=${sport}&visning=samlet`}
             className={`pill ${
               visning === "samlet" ? "bg-navy text-white" : "border border-border text-text-muted"
             }`}
           >
             Samlet
           </Link>
-          <Link href="/stilling?visning=runde"
+          <Link href={`/stilling?sport=${sport}&visning=runde`}
             className={`pill ${
               visning === "runde" ? "bg-navy text-white" : "border border-border text-text-muted"
             }`}

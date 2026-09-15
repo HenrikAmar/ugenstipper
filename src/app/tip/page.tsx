@@ -3,10 +3,12 @@ import { getTippableRounds, roundLabel } from "@/lib/rounds";
 import { pickWeightedBanner, filterBannersForAge } from "@/lib/banners";
 import { calculateAge } from "@/lib/age";
 import { RoundTabs } from "@/components/RoundTabs";
+import { SportTabs } from "@/components/SportTabs";
+import { getUserSports, resolveSport } from "@/lib/participation";
 import { TipRoundForm } from "@/components/TipRoundForm";
 import { BottomNav } from "@/components/BottomNav";
 import { AppHeader } from "@/components/AppHeader";
-import type { Match, SponsorBanner, Tip } from "@/lib/types";
+import type { Match, Sport, SponsorBanner, Tip } from "@/lib/types";
 
 // Data ændrer sig hele tiden (nye tips, admin-ændringer) - denne side må
 // aldrig caches af Next.js, den skal altid hente friske data.
@@ -15,39 +17,38 @@ export const dynamic = "force-dynamic";
 export default async function TipPage({
   searchParams,
 }: {
-  searchParams: { runde?: string };
+  searchParams: { runde?: string; sport?: string };
 }) {
   const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  // De to opslag herunder er uafhængige af hinanden - kør dem samtidig i
+  // Hvilke konkurrencer har brugeren valgt? Det afgør både hvilken sport
+  // siden viser, og om der overhovedet skal være faneblade at skifte med.
+  // Peger ?sport= på en konkurrence, han har valgt fra (fx et gammelt
+  // bogmærke), falder vi tilbage til hans egen - se src/lib/participation.ts.
+  const userSports = await getUserSports(supabase, user?.id);
+  const sport: Sport = resolveSport(searchParams.sport, userSports);
+
+  // De tre opslag herunder er uafhængige af hinanden - kør dem samtidig i
   // stedet for efter hinanden, det gør siden mærkbart hurtigere at åbne.
   // getTippableRounds fanges særskilt (i stedet for at lade Promise.all
   // fejle helt), så vi kan vise en anden besked, hvis det er databasen der
   // ikke svarer, end hvis der reelt bare ikke er sat en runde op.
-  const [
-    {
-      data: { user },
-    },
-    rounds,
-    { data: activeBanners },
-  ] = await Promise.all([
-    supabase.auth.getUser(),
-    getTippableRounds(supabase).catch((err) => {
+  const [rounds, { data: activeBanners }, { data: profile }] = await Promise.all([
+    getTippableRounds(supabase, sport).catch((err) => {
       console.error("[/tip] getTippableRounds fejlede:", err);
       return null;
     }),
     supabase.from("sponsor_banners").select("*").eq("active", true),
+    // Bannere med en aldersgrænse (fx betting, 18+) skal filtreres fra FØR
+    // den vægtede lodtrækning, ud fra brugerens alder (se supabase/alder.sql
+    // og src/middleware.ts, som sikrer alle har udfyldt en fødselsdato, før
+    // de når hertil).
+    supabase.from("profiles").select("birth_date").eq("id", user?.id ?? "").maybeSingle(),
   ]);
 
-  // Bannere med en aldersgrænse (fx betting, 18+) skal filtreres fra FØR
-  // den vægtede lodtrækning, ud fra brugerens alder (se supabase/alder.sql
-  // og src/middleware.ts, som sikrer alle har udfyldt en fødselsdato, før
-  // de når hertil).
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("birth_date")
-    .eq("id", user?.id ?? "")
-    .maybeSingle();
   const userAge = calculateAge(profile?.birth_date ?? null);
 
   // Vælg ét banner tilfældigt, vægtet efter sponsorernes aftalte fordeling
@@ -66,25 +67,62 @@ export default async function TipPage({
     }
   }
 
+  // Samlet ét sted, fordi siden har flere mulige udgaver (ikke tilmeldt,
+  // ingen runde, fejl, normal visning) - og banneret skal vises i dem alle,
+  // så sponsorerne får deres visninger uanset hvad brugeren møder.
+  const bannerBlock = banner ? (
+    <div className="px-5 pb-4 pt-1">
+      {/* Sponsorbanner, valgt vægtet blandt de aktive bannere ovenfor.
+          Ligger øverst på siden (før man begynder at tippe), så alle ser
+          det - ikke kun dem der scroller helt ned. Linker via
+          /api/banner-click, som tæller klikket op og derefter sender
+          videre til sponsorens rigtige link - se den route og
+          src/app/admin/bannere for hvor tallene vises. Åbner i nyt
+          faneblad, da det altid er et eksternt link. */}
+      <a
+        href={`/api/banner-click/${banner.id}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block overflow-hidden rounded-xl"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={banner.image_url} alt={banner.title} className="w-full" />
+      </a>
+    </div>
+  ) : null;
+
   if (rounds === null) {
     return (
-      <div className="mx-auto max-w-[420px] px-6 py-16 text-center">
-        <h1 className="text-lg font-bold">Kunne ikke hente kampene</h1>
-        <p className="mt-2 text-sm text-text-muted">
-          Der opstod en midlertidig fejl ved hentning af kampene. Prøv at
-          genindlæse siden om et lille øjeblik.
-        </p>
+      <div className="mx-auto min-h-screen max-w-[420px] bg-bg pb-24">
+        <AppHeader title="Tip" />
+        <SportTabs activeSport={sport} userSports={userSports} basePath="/tip" />
+        {bannerBlock}
+        <div className="px-6 py-16 text-center">
+          <h1 className="text-lg font-bold">Kunne ikke hente kampene</h1>
+          <p className="mt-2 text-sm text-text-muted">
+            Der opstod en midlertidig fejl ved hentning af kampene. Prøv at
+            genindlæse siden om et lille øjeblik.
+          </p>
+        </div>
+        <BottomNav />
       </div>
     );
   }
 
   if (rounds.length === 0) {
     return (
-      <div className="mx-auto max-w-[420px] px-6 py-16 text-center">
-        <h1 className="text-lg font-bold">Ingen aktiv runde endnu</h1>
-        <p className="mt-2 text-sm text-text-muted">
-          Admin har ikke sat en indeværende runde op endnu. Kom tilbage senere.
-        </p>
+      <div className="mx-auto min-h-screen max-w-[420px] bg-bg pb-24">
+        <AppHeader title="Tip" />
+        <SportTabs activeSport={sport} userSports={userSports} basePath="/tip" />
+        {bannerBlock}
+        <div className="px-6 py-16 text-center">
+          <h1 className="text-lg font-bold">Ingen aktiv runde endnu</h1>
+          <p className="mt-2 text-sm text-text-muted">
+            Admin har ikke sat en indeværende runde op endnu for{" "}
+            {sport === "nfl" ? "NFL" : "Superliga"}. Kom tilbage senere.
+          </p>
+        </div>
+        <BottomNav />
       </div>
     );
   }
@@ -118,29 +156,11 @@ export default async function TipPage({
   return (
     <div className="mx-auto min-h-screen max-w-[420px] bg-bg pb-24">
       <AppHeader title="Tip" />
+      <SportTabs activeSport={sport} userSports={userSports} basePath="/tip" />
 
-      {banner && (
-        <div className="px-5 pb-4 pt-1">
-          {/* Sponsorbanner, valgt vægtet blandt de aktive bannere ovenfor.
-              Ligger øverst på siden (før man begynder at tippe), så alle ser
-              det - ikke kun dem der scroller helt ned. Linker via
-              /api/banner-click, som tæller klikket op og derefter sender
-              videre til sponsorens rigtige link - se den route og
-              src/app/admin/bannere for hvor tallene vises. Åbner i nyt
-              faneblad, da det altid er et eksternt link. */}
-          <a
-            href={`/api/banner-click/${banner.id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block overflow-hidden rounded-xl"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={banner.image_url} alt={banner.title} className="w-full" />
-          </a>
-        </div>
-      )}
+      {bannerBlock}
 
-      <RoundTabs rounds={rounds} activeRoundId={activeRound.id} basePath="/tip" />
+      <RoundTabs rounds={rounds} activeRoundId={activeRound.id} basePath="/tip" sport={sport} />
 
       <div className="flex items-baseline justify-between px-5 pb-3">
         <span className="text-xs font-semibold uppercase text-text-muted">

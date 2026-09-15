@@ -5,6 +5,8 @@ import { AppHeader } from "@/components/AppHeader";
 import { ChangePasswordForm } from "@/components/ChangePasswordForm";
 import { InviteFriend } from "@/components/InviteFriend";
 import { MiniligaCard } from "@/components/MiniligaCard";
+import { SportChooser } from "@/components/SportChooser";
+import { getUserSports } from "@/lib/participation";
 import { AvatarColorPicker } from "@/components/AvatarColorPicker";
 import { toggleNewsletterOptOut } from "./actions";
 import { redirect } from "next/navigation";
@@ -38,20 +40,45 @@ export default async function ProfilPage() {
       .maybeSingle(),
     supabase
       .from("mini_league_members")
-      .select("mini_leagues(id, name, password_hash)")
+      .select("mini_leagues(id, name, password_hash, sport)")
       .eq("user_id", user?.id ?? ""),
   ]);
 
   // Man kan nu være med i flere miniligaer ad gangen - byg listen ud fra
-  // alle rækker i stedet for kun den første/eneste.
-  const miniligaListe = (
+  // alle rækker i stedet for kun den første/eneste. Miniligaer er helt
+  // adskilte pr. sport (se supabase/nfl.sql), så listen splittes i to -
+  // én til Superliga, én til NFL - og vises som to separate kort.
+  const alleMiniligaer = (
     (miniligaer ?? []) as unknown as {
-      mini_leagues: { id: string; name: string; password_hash: string | null } | null;
+      mini_leagues: {
+        id: string;
+        name: string;
+        password_hash: string | null;
+        sport: "superliga" | "nfl";
+      } | null;
     }[]
   )
     .map((row) => row.mini_leagues)
-    .filter((l): l is { id: string; name: string; password_hash: string | null } => l !== null)
-    .map((l) => ({ id: l.id, name: l.name, hasPassword: l.password_hash != null }));
+    .filter(
+      (
+        l
+      ): l is { id: string; name: string; password_hash: string | null; sport: "superliga" | "nfl" } =>
+        l !== null
+    )
+    .map((l) => ({
+      id: l.id,
+      name: l.name,
+      hasPassword: l.password_hash != null,
+      sport: l.sport,
+    }));
+
+  const miniligaListeSuperliga = alleMiniligaer.filter((l) => l.sport === "superliga");
+  const miniligaListeNfl = alleMiniligaer.filter((l) => l.sport === "nfl");
+
+  // Valget af konkurrencer hører hjemme på forsiden, men skal også kunne
+  // findes igen her som en almindelig indstilling - samme komponent begge
+  // steder, så der kun er ét sted at rette i.
+  const userSports = await getUserSports(supabase, user?.id);
 
   return (
     <div className="mx-auto min-h-screen max-w-[420px] bg-bg pb-24">
@@ -77,7 +104,17 @@ export default async function ProfilPage() {
 
       {user && <InviteFriend qualifiedInvites={inviteRow?.qualified_invites ?? 0} />}
 
-      {user && <MiniligaCard leagues={miniligaListe} />}
+      {user && <SportChooser userSports={userSports} />}
+
+      {/* Miniliga-kort kun for de konkurrencer, man faktisk spiller - man
+          skal ikke kunne oprette en miniliga i en konkurrence, man har
+          valgt fra. */}
+      {user && userSports.includes("superliga") && (
+        <MiniligaCard leagues={miniligaListeSuperliga} sport="superliga" />
+      )}
+      {user && userSports.includes("nfl") && (
+        <MiniligaCard leagues={miniligaListeNfl} sport="nfl" />
+      )}
 
       <AvatarColorPicker currentColor={profile?.avatar_color ?? null} />
 

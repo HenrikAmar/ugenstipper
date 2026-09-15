@@ -8,6 +8,7 @@ import {
   leaveMiniliga,
   inviteToMiniliga,
 } from "@/app/actions/miniliga";
+import type { Sport } from "@/lib/types";
 
 type Mode = "opret" | "deltag" | null;
 
@@ -117,7 +118,13 @@ function MembershipRow({ league }: { league: Miniliga }) {
   );
 }
 
-export function MiniligaCard({ leagues }: { leagues: Miniliga[] }) {
+export function MiniligaCard({
+  leagues,
+  sport,
+}: {
+  leagues: Miniliga[];
+  sport: Sport;
+}) {
   const router = useRouter();
 
   const [mode, setMode] = useState<Mode>(null);
@@ -140,8 +147,8 @@ export function MiniligaCard({ leagues }: { leagues: Miniliga[] }) {
 
     const result =
       mode === "opret"
-        ? await createMiniliga(name, password)
-        : await joinMiniliga(name, password);
+        ? await createMiniliga(name, password, sport)
+        : await joinMiniliga(name, password, sport);
 
     if (result?.error) {
       setError(result.error);
@@ -155,7 +162,9 @@ export function MiniligaCard({ leagues }: { leagues: Miniliga[] }) {
 
   return (
     <div className="card mx-5 mt-3 flex flex-col gap-3 rounded-xl p-4">
-      <span className="text-[13px] font-bold">Miniliga</span>
+      <span className="text-[13px] font-bold">
+        Miniliga – {sport === "nfl" ? "NFL" : "Superliga"}
+      </span>
 
       {leagues.length > 0 && (
         <div className="flex flex-col gap-2">

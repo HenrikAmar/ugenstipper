@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { calculatePoints } from "@/lib/points";
+import type { Sport } from "@/lib/types";
 
 /**
  * Gemmer et officielt kampresultat og genberegner point for alle tips på
@@ -16,6 +17,21 @@ export async function applyMatchResult(
   // RLS-regler (kun ejeren, kun før kampstart) ville ellers stille og
   // roligt have blokeret præcis denne opdatering uden nogen fejlbesked.
   const admin = createAdminClient();
+
+  // Superliga og NFL har hvert sit pointsystem (se src/lib/points.ts), og
+  // kampen selv ved ikke hvilken sport den hører til - den arver den fra sin
+  // runde. Derfor slås den op her, så point beregnes efter de rigtige regler.
+  // Skulle opslaget mod forventning fejle, falder vi tilbage til Superliga,
+  // som er det system, siden altid har kørt efter.
+  const { data: matchRow } = await admin
+    .from("matches")
+    .select("rounds!inner(sport)")
+    .eq("id", matchId)
+    .maybeSingle();
+
+  const sport =
+    (matchRow as unknown as { rounds: { sport: Sport } | null } | null)?.rounds?.sport ??
+    "superliga";
 
   const { error: matchError } = await admin
     .from("matches")
@@ -38,7 +54,7 @@ export async function applyMatchResult(
   }
 
   for (const tip of tips ?? []) {
-    const points = calculatePoints(tip.tip_home, tip.tip_away, resultHome, resultAway);
+    const points = calculatePoints(tip.tip_home, tip.tip_away, resultHome, resultAway, sport);
     const { error: tipUpdateError } = await admin
       .from("tips")
       .update({ points })

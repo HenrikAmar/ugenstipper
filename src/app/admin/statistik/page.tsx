@@ -1,5 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { roundLabel } from "@/lib/rounds";
+import { SportTabs } from "@/components/SportTabs";
+import { ALL_SPORTS } from "@/lib/participation";
+import type { Sport } from "@/lib/types";
 
 // Admin-statistik skal altid være frisk - må ikke caches.
 export const dynamic = "force-dynamic";
@@ -16,6 +19,10 @@ interface RoundRow {
   season: string;
   number: number;
   kind: "liga" | "bonus";
+  // Styrer både hvilke runder der overhovedet tælles med på siden (se
+  // sport-filtreringen længere nede) og roundLabel(), så Superliga- og
+  // NFL-runder ikke ligner hinanden (fx begge "Runde 5").
+  sport: Sport;
 }
 
 interface MatchRow {
@@ -45,26 +52,36 @@ interface VisitRow {
 // Bruges til at vise "for X dage siden" i stedet for rå datoer.
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export default async function AdminStatistikPage() {
+export default async function AdminStatistikPage({
+  searchParams,
+}: {
+  searchParams: { sport?: string };
+}) {
   const admin = createAdminClient();
+  const sport: Sport = searchParams.sport === "nfl" ? "nfl" : "superliga";
+  const sportLabel = sport === "nfl" ? "NFL" : "Superliga";
 
   const [
     { data: profilesRaw, error: profilesError },
     { data: roundsRaw, error: roundsError },
     { data: matchesRaw, error: matchesError },
     { data: tipsRaw, error: tipsError },
-    { count: miniLeagueCount, error: miniLeagueError },
-    { count: miniLeagueMemberCount, error: miniLeagueMemberError },
+    { data: miniLeaguesRaw, error: miniLeagueError },
+    { data: miniLeagueMembersRaw, error: miniLeagueMemberError },
+    { data: participantsRaw, error: participantsError },
     { data: inviteRowsRaw, error: inviteError },
     { count: pageviewsAllTime, error: pageviewsError },
     { data: visitsRaw, error: visitsError },
   ] = await Promise.all([
     admin.from("profiles").select("id, display_name, created_at, invited_by"),
-    admin.from("rounds").select("id, season, number, kind"),
+    admin.from("rounds").select("id, season, number, kind, sport"),
     admin.from("matches").select("id, round_id, result_home, result_away"),
     admin.from("tips").select("user_id, match_id, points"),
-    admin.from("mini_leagues").select("*", { count: "exact", head: true }),
-    admin.from("mini_league_members").select("*", { count: "exact", head: true }),
+    // Hentes som rigtige rækker (ikke bare et antal), fordi miniligaer nu
+    // hører til hver sin sport og derfor skal tælles op pr. sport.
+    admin.from("mini_leagues").select("id, sport"),
+    admin.from("mini_league_members").select("league_id"),
+    admin.from("sport_participants").select("user_id, sport").eq("status", "joined"),
     admin
       .from("invite_leaderboard")
       .select("user_id, display_name, qualified_invites")
@@ -88,6 +105,7 @@ export default async function AdminStatistikPage() {
     { label: "Tips", error: tipsError },
     { label: "Mini-ligaer", error: miniLeagueError },
     { label: "Mini-liga-medlemmer", error: miniLeagueMemberError },
+    { label: "Tilmeldte til konkurrencer", error: participantsError },
     { label: "Invitationer", error: inviteError },
     { label: "Sidevisninger (total)", error: pageviewsError },
     { label: "Sidevisninger (30 dage)", error: visitsError },
@@ -101,11 +119,28 @@ export default async function AdminStatistikPage() {
   }
 
   const profiles: ProfileRow[] = profilesRaw ?? [];
-  const rounds: RoundRow[] = roundsRaw ?? [];
-  const matches: MatchRow[] = matchesRaw ?? [];
-  const tips: TipRow[] = tipsRaw ?? [];
   const inviteRows: InviteRow[] = inviteRowsRaw ?? [];
   const visits: VisitRow[] = visitsRaw ?? [];
+
+  // ---------- Opdeling pr. sport ----------
+  // Superliga og NFL er to selvstændige konkurrencer og må aldrig lægges
+  // sammen. Kun runder har en sport-kolonne - kampe og tips arver den via
+  // henholdsvis round_id og match_id, så vi filtrerer i den rækkefølge:
+  // runder -> kampe -> tips. Alt herunder, der handler om runder, point og
+  // deltagelse, regner derfor kun på den valgte sport.
+  //
+  // Bemærk hvad der IKKE filtreres: brugertal, invitationer og besøg er
+  // fælles for hele siden (man opretter sig på Ugenstipper, ikke på en
+  // bestemt sport) og vises derfor ens uanset faneblad.
+  const rounds: RoundRow[] = (roundsRaw ?? []).filter((r) => r.sport === sport);
+  const roundIdsInSport = new Set(rounds.map((r) => r.id));
+
+  const matches: MatchRow[] = (matchesRaw ?? []).filter((m) =>
+    roundIdsInSport.has(m.round_id)
+  );
+  const matchIdsInSport = new Set(matches.map((m) => m.id));
+
+  const tips: TipRow[] = (tipsRaw ?? []).filter((t) => matchIdsInSport.has(t.match_id));
 
   const now = Date.now();
   const nameById = new Map(profiles.map((p) => [p.id, p.display_name]));
@@ -119,7 +154,15 @@ export default async function AdminStatistikPage() {
     (p) => now - new Date(p.created_at).getTime() <= 30 * DAY_MS
   ).length;
 
-  // "Aktiv" = har sat mindst ét tip nogensinde.
+  // Tilmeldte til denne konkurrence. Begge sporte er nu et aktivt valg -
+  // brugeren vælger selv Superliga og/eller NFL til på forsiden, så tallet
+  // er en rigtig optælling for begge (se src/lib/participation.ts).
+  const signedUpUsers = (participantsRaw ?? []).filter((r) => r.sport === sport).length;
+
+  // "Aktiv" = har sat mindst ét tip i DENNE sport. Tallet siger altså, hvor
+  // stor en del af brugerne der rent faktisk spiller med i den valgte
+  // konkurrence - derfor kan "aktive" godt være lavt for NFL, selvom
+  // brugertallet ovenfor er højt.
   const activeUserIds = new Set(tips.map((t) => t.user_id));
   const activeUsers = activeUserIds.size;
   const dormantUsers = Math.max(0, totalUsers - activeUsers);
@@ -218,10 +261,19 @@ export default async function AdminStatistikPage() {
   }
 
   // ---------- Mini-ligaer ----------
+  // Miniligaer hører til hver sin sport, så både antallet og den
+  // gennemsnitlige størrelse opgøres kun for den valgte sport.
+  const miniLeaguesInSport = (miniLeaguesRaw ?? []).filter((l) => l.sport === sport);
+  const miniLeagueIdsInSport = new Set(miniLeaguesInSport.map((l) => l.id));
+  const miniLeagueCount = miniLeaguesInSport.length;
+  const miniLeagueMemberCount = (miniLeagueMembersRaw ?? []).filter((m) =>
+    miniLeagueIdsInSport.has(m.league_id)
+  ).length;
+
   const avgLeagueSize =
-    !miniLeagueCount || miniLeagueCount === 0
+    miniLeagueCount === 0
       ? 0
-      : Math.round(((miniLeagueMemberCount ?? 0) / miniLeagueCount) * 10) / 10;
+      : Math.round((miniLeagueMemberCount / miniLeagueCount) * 10) / 10;
 
   // ---------- Inviter en ven ----------
   const topInviters = inviteRows.filter((r) => r.qualified_invites > 0).slice(0, 5);
@@ -265,6 +317,18 @@ export default async function AdminStatistikPage() {
         Overblik over brugere, vindere og besøg på Ugenstipper.
       </p>
 
+      <div className="mt-4 max-w-[280px]">
+        {/* Admin ser ALTID begge sporte, uanset hvad han selv har valgt at
+            spille - man skal kunne holde øje med en konkurrence uden at
+            være deltager i den. */}
+        <SportTabs activeSport={sport} userSports={ALL_SPORTS} basePath="/admin/statistik" />
+      </div>
+      <p className="mt-2 text-[12.5px] text-text-muted">
+        Fanebladet gælder de afsnit, der er mærket med sporten (runder, point,
+        deltagelse og miniligaer). Brugertal, invitationer og besøg er fælles for
+        hele siden og ændrer sig ikke, når du skifter faneblad.
+      </p>
+
       {queryErrors.length > 0 && (
         <div className="mt-4 rounded-xl border border-danger bg-red-50 p-3.5">
           <div className="text-[13px] font-bold text-danger">
@@ -296,17 +360,21 @@ export default async function AdminStatistikPage() {
           <div className="mt-1 font-heading text-2xl font-extrabold">{newThisMonth}</div>
         </div>
         <div className="card rounded-xl p-3.5">
-          <div className="text-[11.5px] font-semibold text-text-muted">Aktive / sovende</div>
+          <div className="text-[11.5px] font-semibold text-text-muted">
+            Aktive / sovende · {sportLabel}
+          </div>
           <div className="mt-1 font-heading text-2xl font-extrabold">
             {activeUsers} / {dormantUsers}
           </div>
-          <div className="text-[10.5px] text-text-muted">Har sat mindst ét tip nogensinde</div>
+          <div className="text-[10.5px] text-text-muted">
+            Har sat mindst ét tip i {sportLabel}
+          </div>
         </div>
       </div>
 
       {/* ---------- Rundevindere ---------- */}
       <h2 className="mt-8 text-sm font-bold uppercase tracking-wide text-text-muted">
-        Rundevindere
+        Rundevindere · {sportLabel}
       </h2>
       {winLeaderboard.length > 0 && (
         <div className="card mt-2 rounded-xl p-4">
@@ -331,15 +399,26 @@ export default async function AdminStatistikPage() {
           </div>
         ))}
         {roundResults.length === 0 && (
-          <p className="text-sm text-text-muted">Ingen afgjorte runder endnu.</p>
+          <p className="text-sm text-text-muted">
+            Ingen afgjorte runder endnu i {sportLabel}.
+          </p>
         )}
       </div>
 
       {/* ---------- Deltagelse ---------- */}
       <h2 className="mt-8 text-sm font-bold uppercase tracking-wide text-text-muted">
-        Deltagelse
+        Deltagelse · {sportLabel}
       </h2>
-      <div className="mt-2 grid grid-cols-2 gap-2.5">
+      <div className="mt-2 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+        <div className="card rounded-xl p-3.5">
+          <div className="text-[11.5px] font-semibold text-text-muted">
+            Tilmeldt {sportLabel}
+          </div>
+          <div className="mt-1 font-heading text-2xl font-extrabold">{signedUpUsers}</div>
+          <div className="text-[10.5px] text-text-muted">
+            Har valgt konkurrencen til
+          </div>
+        </div>
         <div className="card rounded-xl p-3.5">
           <div className="text-[11.5px] font-semibold text-text-muted">
             Gns. deltagere pr. afgjort runde
@@ -359,19 +438,26 @@ export default async function AdminStatistikPage() {
         </div>
       </div>
 
-      {/* ---------- Mini-ligaer og invitationer ---------- */}
+      {/* ---------- Mini-ligaer (pr. sport) ---------- */}
       <h2 className="mt-8 text-sm font-bold uppercase tracking-wide text-text-muted">
-        Mini-ligaer og invitationer
+        Mini-ligaer · {sportLabel}
       </h2>
-      <div className="mt-2 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+      <div className="mt-2 grid grid-cols-2 gap-2.5">
         <div className="card rounded-xl p-3.5">
           <div className="text-[11.5px] font-semibold text-text-muted">Mini-ligaer</div>
-          <div className="mt-1 font-heading text-2xl font-extrabold">{miniLeagueCount ?? 0}</div>
+          <div className="mt-1 font-heading text-2xl font-extrabold">{miniLeagueCount}</div>
         </div>
         <div className="card rounded-xl p-3.5">
           <div className="text-[11.5px] font-semibold text-text-muted">Gns. medlemmer</div>
           <div className="mt-1 font-heading text-2xl font-extrabold">{avgLeagueSize}</div>
         </div>
+      </div>
+
+      {/* ---------- Invitationer (fælles for hele siden) ---------- */}
+      <h2 className="mt-8 text-sm font-bold uppercase tracking-wide text-text-muted">
+        Invitationer
+      </h2>
+      <div className="mt-2 grid grid-cols-2 gap-2.5">
         <div className="card rounded-xl p-3.5">
           <div className="text-[11.5px] font-semibold text-text-muted">Inviteret i alt</div>
           <div className="mt-1 font-heading text-2xl font-extrabold">{totalRawInvited}</div>

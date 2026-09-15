@@ -1,23 +1,28 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import type { Sport } from "@/lib/types";
 
-export async function createMiniliga(name: string, password: string) {
+// Miniligaer er helt adskilte pr. sport (se supabase/nfl.sql) - oprettelse
+// og deltagelse sker altid inden for den sport, brugeren står på i fanebladet.
+export async function createMiniliga(name: string, password: string, sport: Sport) {
   const supabase = createClient();
   const { data, error } = await supabase.rpc("create_miniliga", {
     p_name: name,
     p_password: password,
+    p_sport: sport,
   });
 
   if (error) return { error: error.message };
   return { success: true, id: data as string };
 }
 
-export async function joinMiniliga(name: string, password: string) {
+export async function joinMiniliga(name: string, password: string, sport: Sport) {
   const supabase = createClient();
   const { error } = await supabase.rpc("join_miniliga", {
     p_name: name,
     p_password: password,
+    p_sport: sport,
   });
 
   if (error) return { error: error.message };

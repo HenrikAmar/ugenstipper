@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { BottomNav } from "@/components/BottomNav";
 import { AppHeader } from "@/components/AppHeader";
+import { SportTabs } from "@/components/SportTabs";
+import { getUserSports, resolveSport } from "@/lib/participation";
+import type { Sport } from "@/lib/types";
 
 // Statistikken ændrer sig når admin indtaster resultater - må ikke caches.
 export const dynamic = "force-dynamic";
@@ -16,23 +19,39 @@ interface TipWithContext {
     kickoff_at: string;
     result_home: number | null;
     result_away: number | null;
-    rounds: { number: number; kind: "liga" | "bonus"; season: string } | null;
+    rounds: { number: number; kind: "liga" | "bonus"; season: string; sport: Sport } | null;
   } | null;
 }
 
-export default async function StatistikPage() {
+export default async function StatistikPage({
+  searchParams,
+}: {
+  searchParams: { sport?: string };
+}) {
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Kun brugerens egne konkurrencer - se src/lib/participation.ts.
+  const userSports = await getUserSports(supabase, user?.id);
+  const sport: Sport = resolveSport(searchParams.sport, userSports);
+
   const [{ data: allTips }, { data: currentRound }] = await Promise.all([
     supabase
       .from("tips")
       .select(
-        "user_id, points, tip_home, tip_away, matches(home_team, away_team, kickoff_at, result_home, result_away, rounds(number, kind, season))"
+        "user_id, points, tip_home, tip_away, matches(home_team, away_team, kickoff_at, result_home, result_away, rounds(number, kind, season, sport))"
       ),
-    supabase.from("rounds").select("season").eq("kind", "liga").eq("is_current", true).maybeSingle(),
+    // Den aktive sæson skal findes inden for den valgte sport - Superliga og
+    // NFL har hver sin indeværende runde (se supabase/nfl.sql).
+    supabase
+      .from("rounds")
+      .select("season")
+      .eq("kind", "liga")
+      .eq("is_current", true)
+      .eq("sport", sport)
+      .maybeSingle(),
   ]);
 
   const tips = (allTips ?? []) as unknown as TipWithContext[];
@@ -42,9 +61,15 @@ export default async function StatistikPage() {
   // sammen med de almindelige runder med samme nummer. Samme grund til at vi
   // også låser til den aktive sæson - ellers ville "Runde 1" fra en tidligere
   // sæson blive blandet sammen med "Runde 1" i den nye.
+  //
+  // KRITISK af præcis samme grund: tips-forespørgslen ovenfor henter ALLE
+  // tips på tværs af begge sporte, så uden sport-tjekket ville fx NFL's
+  // "Runde 1" blive lagt oveni Superligaens "Runde 1" i grafen - og
+  // træfsikkerhed/stime ville blande de to konkurrencer sammen.
   const decided = tips.filter(
     (t) =>
       t.points !== null &&
+      t.matches?.rounds?.sport === sport &&
       t.matches?.rounds?.kind !== "bonus" &&
       (activeSeason === null || t.matches?.rounds?.season === activeSeason)
   );
@@ -116,6 +141,7 @@ export default async function StatistikPage() {
   return (
     <div className="mx-auto min-h-screen max-w-[420px] bg-bg pb-24">
       <AppHeader title="Din statistik" />
+      <SportTabs activeSport={sport} userSports={userSports} basePath="/statistik" />
 
       <div className="grid grid-cols-2 gap-2.5 px-5 pt-4">
         <div className="card rounded-xl p-3.5">

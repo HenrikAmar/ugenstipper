@@ -4,7 +4,9 @@ import { AppHeader } from "@/components/AppHeader";
 import { BottomNav } from "@/components/BottomNav";
 import { PrefetchTip } from "@/components/PrefetchTip";
 import { AnnouncementCard } from "@/components/AnnouncementCard";
-import type { Announcement } from "@/lib/types";
+import { SportChooser } from "@/components/SportChooser";
+import { getUserSports, SPORT_NAMES } from "@/lib/participation";
+import type { Announcement, Sport } from "@/lib/types";
 
 // Forsiden. Viser noget forskelligt afhængig af om man er logget ind:
 // - Ikke logget ind: en salgs-/præsentationsside, der forklarer konkurrencen
@@ -50,6 +52,65 @@ const FEATURES = [
   },
 ];
 
+// De to konkurrencer har hvert sit pointsystem (se src/lib/points.ts), fordi
+// scorerne opfører sig vidt forskelligt: fodboldresultater er lave nok til,
+// at man jævnligt rammer dem præcist, mens NFL-scorer som 27-10 næsten aldrig
+// rammes helt. Derfor får NFL flere måder at score point på undervejs - og en
+// større gevinst, når det præcise bud endelig sidder.
+//
+// Punkt 1 og 3 er ens for begge konkurrencer; kun "Saml point" skal skifte.
+function stepsForSports(userSports: Sport[]) {
+  const harSuperliga = userSports.includes("superliga");
+  const harNfl = userSports.includes("nfl");
+
+  let pointTekst: string;
+  if (harSuperliga && harNfl) {
+    pointTekst =
+      "Superliga: 1 point for det rigtige udfald, 2 hvis du også rammer det ene holds måltal - og 5 for det helt præcise resultat. NFL spilles med større tal: 3 point for vinderen, 3 for sejrsmarginen og 3 for hvert holds score, du rammer - plus 10 i bonus, hvis hele resultatet sidder. Helt op til 22 point på én kamp.";
+  } else if (harNfl) {
+    pointTekst =
+      "3 point for den rigtige vinder. 3 point for sejrsmarginen - fx at de vinder med præcis 7. 3 point for hvert holds score, du rammer præcist. Og rammer du hele resultatet, får du 10 point oveni. Touchdown - 22 point på én kamp!";
+  } else {
+    pointTekst =
+      "1 point for det rigtige udfald, 2 point hvis du også rammer det ene holds måltal - eller 5 point i alt, hvis du rammer resultatet helt præcist.";
+  }
+
+  return [
+    STEPS[0],
+    { title: "Saml point", text: pointTekst },
+    STEPS[2],
+  ];
+}
+
+// Forsiden for en bruger, der er logget ind, retter sig efter hvilke
+// konkurrencer han har valgt - bortset fra nyhederne, som er fælles.
+// Bonusrunder findes kun i Superligaen, så det punkt skal ikke stå og love
+// noget til en, der kun spiller NFL.
+function featuresForSports(userSports: Sport[]) {
+  const harSuperliga = userSports.includes("superliga");
+
+  return [
+    {
+      title: "Miniligaer",
+      text: harSuperliga && userSports.includes("nfl")
+        ? "Opret din egen liga med venner, familie eller kollegaer - hver konkurrence har sine egne."
+        : "Opret din egen liga med venner, familie eller kollegaer - med eller uden kode.",
+    },
+    ...(harSuperliga
+      ? [
+          {
+            title: "Bonusrunder",
+            text: "Ekstra sjove runder ind imellem, fx når et dansk hold spiller i Europa.",
+          },
+        ]
+      : []),
+    {
+      title: "Inviter venner",
+      text: "Få flere med, og se hvem der topper listen over inviterede venner.",
+    },
+  ];
+}
+
 export default async function HomePage({
   searchParams,
 }: {
@@ -80,6 +141,12 @@ export default async function HomePage({
     const announcementList = fetchedAnnouncements.slice(0, 2);
     const hasMoreAnnouncements = fetchedAnnouncements.length > 2;
 
+    // Brugerens egne konkurrencer styrer resten af forsiden: hvor mange
+    // "Tip"-knapper der er, og hvilke funktioner det giver mening at nævne.
+    const userSports = await getUserSports(supabase, user.id);
+    const steps = stepsForSports(userSports);
+    const features = featuresForSports(userSports);
+
     return (
       <div className="mx-auto min-h-screen max-w-[420px] bg-bg pb-24">
         <PrefetchTip />
@@ -106,21 +173,30 @@ export default async function HomePage({
           )}
         </div>
 
-        <div className="px-5 pt-5">
-          <Link
-            href="/tip"
-            className="flex h-16 items-center justify-center rounded-[14px] bg-accent-2 text-[18px] font-extrabold text-white"
-          >
-            Tip her
-          </Link>
+        {/* Én knap pr. konkurrence, så man rammer den rigtige fane med det
+            samme. Er man kun med i én, står der bare "Tip her" som før -
+            så skal der ikke stå et sportsnavn på en knap, når der alligevel
+            ikke er noget at vælge imellem. */}
+        <div className="flex flex-col gap-2.5 px-5 pt-5">
+          {userSports.map((sport) => (
+            <Link
+              key={sport}
+              href={`/tip?sport=${sport}`}
+              className="flex h-16 items-center justify-center rounded-[14px] bg-accent-2 text-[18px] font-extrabold text-white"
+            >
+              {userSports.length === 1 ? "Tip her" : `Tip ${SPORT_NAMES[sport]}`}
+            </Link>
+          ))}
         </div>
+
+        <SportChooser userSports={userSports} />
 
         <div className="px-5 pt-8">
           <h2 className="text-[13px] font-bold uppercase tracking-wide text-text-muted">
             Sådan virker det
           </h2>
           <div className="mt-3 flex flex-col gap-3">
-            {STEPS.map((step, i) => (
+            {steps.map((step, i) => (
               <div key={step.title} className="card flex items-start gap-3 rounded-xl p-4">
                 <div className="badge flex-shrink-0 bg-accent-2">{i + 1}</div>
                 <div>
@@ -137,7 +213,7 @@ export default async function HomePage({
             Mere end bare tips
           </h2>
           <div className="mt-3 flex flex-col gap-3">
-            {FEATURES.map((feature) => (
+            {features.map((feature) => (
               <div key={feature.title} className="card rounded-xl p-4">
                 <h3 className="text-[14px] font-bold">{feature.title}</h3>
                 <p className="mt-1 text-[13px] leading-relaxed text-text-muted">{feature.text}</p>

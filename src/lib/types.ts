@@ -20,12 +20,17 @@ export interface Profile {
 
 export type RoundKind = "liga" | "bonus";
 
+// De to konkurrencer, der kører side om side i appen (samme login, adskilte
+// runder/kampe/miniligaer) - valgt via faneblade, se src/components/SportTabs.tsx.
+export type Sport = "superliga" | "nfl";
+
 export interface Round {
   id: string;
   season: string;
   number: number;
   kind: RoundKind;
   is_current: boolean;
+  sport: Sport;
   created_at: string;
 }
 

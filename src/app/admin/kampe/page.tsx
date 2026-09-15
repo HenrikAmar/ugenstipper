@@ -7,11 +7,14 @@ import {
   submitResult,
   deleteMatch,
   deleteRound,
+  recalculatePointsAction,
 } from "./actions";
-import type { Match, Round } from "@/lib/types";
+import type { Match, Round, Sport } from "@/lib/types";
 import { utcToDanishLocalInputValue } from "@/lib/time";
 import { SUPERLIGA_TEAMS } from "@/lib/clubColors";
 import { DeleteRoundButton } from "@/components/DeleteRoundButton";
+import { SportTabs } from "@/components/SportTabs";
+import { ALL_SPORTS } from "@/lib/participation";
 import { roundLabel } from "@/lib/rounds";
 
 // Til redigeringsformularen: sørger for at holdets nuværende navn altid er en
@@ -27,9 +30,10 @@ export const dynamic = "force-dynamic";
 export default async function AdminKampePage({
   searchParams,
 }: {
-  searchParams: { runde?: string };
+  searchParams: { runde?: string; sport?: string };
 }) {
   const supabase = createClient();
+  const sport: Sport = searchParams.sport === "nfl" ? "nfl" : "superliga";
 
   const { count: userCount } = await supabase
     .from("profiles")
@@ -38,6 +42,7 @@ export default async function AdminKampePage({
   const { data: rounds } = await supabase
     .from("rounds")
     .select("*")
+    .eq("sport", sport)
     .order("number", { ascending: true });
 
   // Vis almindelige runder for sig og bonusrunder for sig (i stedet for
@@ -96,7 +101,13 @@ export default async function AdminKampePage({
         </div>
       </div>
 
-      <form action={createRound} className="card mt-6 flex flex-wrap items-end gap-3 rounded-xl p-4">
+      <div className="mt-6 max-w-[280px]">
+        {/* Admin opretter runder og kampe i BEGGE sporte, uanset hvad han
+            selv spiller - derfor altid begge faner her. */}
+        <SportTabs activeSport={sport} userSports={ALL_SPORTS} basePath="/admin/kampe" />
+      </div>
+
+      <form action={createRound.bind(null, sport)} className="card mt-4 flex flex-wrap items-end gap-3 rounded-xl p-4">
         <div className="flex flex-col gap-1">
           <label className="text-xs font-semibold text-text-muted">Sæson</label>
           <input
@@ -139,7 +150,7 @@ export default async function AdminKampePage({
       <div className="mt-6 flex flex-wrap gap-2">
         {roundList.map((r) => (
           <a key={r.id}
-            href={`/admin/kampe?runde=${r.id}`}
+            href={`/admin/kampe?sport=${sport}&runde=${r.id}`}
             className={`pill ${
               activeRound?.id === r.id
                 ? "bg-navy text-white"
@@ -169,6 +180,24 @@ export default async function AdminKampePage({
         </div>
       )}
 
+      {/* Point gemmes på hvert tip, når resultatet indtastes. Ændrer vi
+          pointfordelingen i src/lib/points.ts, beholder gamle kampe derfor
+          de gamle point - denne knap regner dem alle om efter de gældende
+          regler, så stillingen ikke bliver en blanding af to systemer. */}
+      <div className="mt-6 rounded-xl border border-border p-3.5">
+        <div className="text-[13px] font-bold">Pointsystem</div>
+        <p className="mt-1 text-[12.5px] leading-relaxed text-text-muted">
+          Har I ændret pointfordelingen for {sport === "nfl" ? "NFL" : "Superliga"}, skal
+          allerede afgjorte kampe regnes om - ellers blandes gamle og nye regler i
+          stillingen. Knappen ændrer ikke resultaterne, kun pointene.
+        </p>
+        <form action={recalculatePointsAction.bind(null, sport)} className="mt-2.5">
+          <button className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold">
+            Genberegn alle {sport === "nfl" ? "NFL" : "Superliga"}-point
+          </button>
+        </form>
+      </div>
+
       {!activeRound && (
         <p className="mt-8 text-sm text-text-muted">
           Opret en runde ovenfor for at komme i gang.
@@ -186,7 +215,7 @@ export default async function AdminKampePage({
                 bevidst UDENFOR denne key, så det holder sin værdi, når man
                 opretter flere kampe med samme kampstart-tidspunkt i træk. */}
             <div key={`${activeRound.id}-${matchList.length}`} className="contents">
-              {activeRound.kind === "liga" ? (
+              {activeRound.kind === "liga" && activeRound.sport === "superliga" ? (
                 <>
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-semibold text-text-muted">Hjemmehold</label>
@@ -271,7 +300,7 @@ export default async function AdminKampePage({
                     action={updateMatch.bind(null, m.id)}
                     className="flex flex-wrap items-end gap-3"
                   >
-                    {activeRound.kind === "liga" ? (
+                    {activeRound.kind === "liga" && activeRound.sport === "superliga" ? (
                       <>
                         <select
                           name="home_team"

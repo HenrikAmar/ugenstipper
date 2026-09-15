@@ -49,6 +49,47 @@ export default function ReglerPage() {
         </section>
 
         <section className="card rounded-xl p-4">
+          <h2 className="mb-2 text-[15px] font-bold">NFL</h2>
+          <p className="text-[13.5px] leading-relaxed text-text-muted">
+            Ved siden af Superliga-konkurrencen kører vi også en NFL-konkurrence - samme
+            spilform, samme login. De to konkurrencer (og deres miniligaer) holdes helt adskilt
+            fra hinanden. Point optjenes efter de samme principper som ovenfor, men
+            Resultaterne indtastes manuelt af os efter hver runde.
+          </p>
+          <p className="mt-2.5 text-[13.5px] leading-relaxed text-text-muted">
+            NFL har sit eget pointsystem, fordi scorerne er langt højere og mere spredte end i
+            fodbold - et bud som 27-10 rammes næsten aldrig helt præcist. Derfor er der flere
+            måder at score på undervejs:
+          </p>
+          <ul className="mt-2 flex flex-col gap-1.5 text-[13.5px] leading-relaxed text-text-muted">
+            <li>3 point, hvis du rammer den rigtige vinder.</li>
+            <li>
+              3 point, hvis du rammer sejrsmarginen - altså at de vinder med præcis det antal
+              point, du gættede.
+            </li>
+            <li>3 point for hvert af de to holds score, du rammer præcist.</li>
+            <li>
+              10 point oveni, hvis du rammer hele resultatet. Touchdown!
+            </li>
+          </ul>
+          <p className="mt-2.5 text-[13.5px] leading-relaxed text-text-muted">
+            Det hele lægges sammen, så en enkelt kamp kan give helt op til 22 point, hvis du
+            rammer plet. I praksis giver en kamp 0, 3, 6 eller 22 point - flere af reglerne
+            hænger nemlig sammen: rammer du både marginen og det ene holds score, er det andet
+            tal givet på forhånd, og så har du jo ramt hele resultatet. Pointsystemet for NFL er
+            nyt, og vi justerer det gerne undervejs, hvis det viser sig at ramme skævt.
+          </p>
+          <p className="mt-2.5 text-[13.5px] leading-relaxed text-text-muted">
+            Du vælger selv, hvad du vil være med i: Superliga, NFL eller begge dele. Det gør du
+            under &bdquo;Dine konkurrencer&rdquo; på forsiden (og under Profil). Vælger du kun den
+            ene, ser du slet ikke den anden - hverken kampe, stilling eller påmindelser. Det
+            eneste krav er, at du er med i mindst én; ellers ville der jo ikke være noget at
+            tippe. Du kan skifte når som helst, og dine tips og point bliver gemt, så du kan
+            vende tilbage til en konkurrence uden at have mistet noget.
+          </p>
+        </section>
+
+        <section className="card rounded-xl p-4">
           <h2 className="mb-2 text-[15px] font-bold">Bonusrunder</h2>
           <p className="text-[13.5px] leading-relaxed text-text-muted">
             Ind imellem opretter vi en bonusrunde - f.eks. når et dansk hold spiller i Europa. Det
@@ -61,10 +102,11 @@ export default function ReglerPage() {
         <section className="card rounded-xl p-4">
           <h2 className="mb-2 text-[15px] font-bold">Miniligaer</h2>
           <p className="text-[13.5px] leading-relaxed text-text-muted">
-            Under din profil kan du oprette din egen miniliga med venner, familie eller kollegaer.
-            Giv den et navn, og vælg selv, om den skal have en kode - uden kode er den åben for
-            alle, der kender navnet. Du kan kun være med i én miniliga ad gangen, men du kan
-            forlade den og skifte, når du vil.
+            Under din profil kan du oprette dine egne miniligaer med venner, familie eller
+            kollegaer - du kan sagtens være med i flere ad gangen (f.eks. én med familien og én med
+            kollegaerne). Giv den et navn, og vælg selv, om den skal have en kode - uden kode er
+            den åben for alle, der kender navnet. Du kan forlade en miniliga igen, når du vil.
+            Miniligaer oprettes separat for Superliga og NFL.
           </p>
         </section>
 
