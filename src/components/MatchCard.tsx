@@ -1,6 +1,7 @@
 "use client";
 
 import { TeamBadge } from "@/components/TeamBadge";
+import { visningsnavn } from "@/lib/clubColors";
 import type { LiveKamp } from "@/lib/nflResults";
 import type { Match, Tip } from "@/lib/types";
 
@@ -82,7 +83,8 @@ export function MatchCard({
       }`}
     >
       <TeamBadge team={match.home_team} />
-      <span className={navneStil}>{match.home_team}</span>
+      {/* Badge og farver slår op på det FULDE navn - kun teksten forkortes. */}
+      <span className={navneStil}>{visningsnavn(match.home_team)}</span>
     </div>
   );
 
@@ -92,7 +94,7 @@ export function MatchCard({
         pladsTilLangeNavne ? "flex-1" : ""
       }`}
     >
-      <span className={`${navneStil} text-right`}>{match.away_team}</span>
+      <span className={`${navneStil} text-right`}>{visningsnavn(match.away_team)}</span>
       <TeamBadge team={match.away_team} />
     </div>
   );

@@ -5,6 +5,7 @@ import { MatchCard } from "@/components/MatchCard";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { saveTips } from "@/app/tip/actions";
 import { useNflLive } from "@/lib/useNflLive";
+import { visningsnavn } from "@/lib/clubColors";
 import type { Match, Sport, Tip } from "@/lib/types";
 
 type TipValue = { home: string; away: string };
@@ -47,10 +48,14 @@ export function TipRoundForm({
   // Bemærk at det afgøres af navnene, ikke af sporten: en Superliga-runde med
   // korte navne beholder den kompakte udgave, mens en bonusrunde med fx
   // "Borussia Mönchengladbach" automatisk får luften med.
+  //
+  // Vi maaler paa det navn, der rent faktisk STAAR paa kortet - altsaa efter
+  // eventuel forkortelse (se visningsnavn i src/lib/clubColors.ts).
   const MAKS_NAVNELAENGDE = 15;
   const pladsTilLangeNavne = matches.some(
     (m) =>
-      m.home_team.length > MAKS_NAVNELAENGDE || m.away_team.length > MAKS_NAVNELAENGDE
+      visningsnavn(m.home_team).length > MAKS_NAVNELAENGDE ||
+      visningsnavn(m.away_team).length > MAKS_NAVNELAENGDE
   );
 
   const [values, setValues] = useState<Record<string, TipValue>>(() => {

@@ -285,3 +285,51 @@ export function getClubStyle(teamName: string): ClubStyle | null {
   }
   return bestMatch;
 }
+
+// ---------------------------------------------------------------------------
+// Kortere visningsnavne
+// ---------------------------------------------------------------------------
+//
+// Nogle få holdnavne er simpelthen for lange til tipkortet - de bliver klippet
+// af, så man kun kan læse "Los Angel..." og ikke kan se, hvem man tipper på.
+// I stedet for at gøre skriften mindre for ALLE hold, forkorter vi de ganske
+// få navne, der ikke kan være der, på samme måde som man siger "FCK" og "FCM"
+// i Superligaen.
+//
+// HVORDAN AFGØR MAN, OM ET NAVN SKAL MED HERUNDER? Man kigger på skærmen -
+// man tæller IKKE tegn. Det er bogstavernes BREDDE, der afgør det, ikke deres
+// antal: "Jacksonville Jaguars" og "Los Angeles Chargers" er lige lange på
+// papiret (20 tegn), men den første består af smalle bogstaver og står fint,
+// mens den anden bliver klippet af.
+//
+// De fem herunder er dem, Henrik så blive klippet af på sin telefon i uge 2,
+// hvor alle 32 hold var i spil - altså en komplet gennemgang af hele ligaen,
+// ikke et udpluk. Går der hul på det igen (fx et udenlandsk klubnavn i en
+// bonusrunde), er det bare én linje mere i listen.
+//
+// Vigtigt: det her er KUN til visning. I databasen (og dermed i alle opslag,
+// point og resultat-hentningen fra ESPN) hedder holdene stadig deres fulde
+// navn - så der er intet, der går i stykker af at ændre herunder.
+//
+// Nøglen er det fulde navn; den bliver slået op gennem den samme normalisering
+// som farverne, så små forskelle i stavemåde stadig rammer.
+const VISNINGSNAVNE: Record<string, string> = {
+  "New England Patriots": "NE Patriots",
+  "Tampa Bay Buccaneers": "TB Buccaneers",
+  "Los Angeles Chargers": "LA Chargers",
+  "Washington Commanders": "W. Commanders",
+  "San Francisco 49ers": "SF 49ers",
+};
+
+const VISNINGS_LOOKUP = new Map<string, string>();
+for (const [fuldt, kort] of Object.entries(VISNINGSNAVNE)) {
+  VISNINGS_LOOKUP.set(normalize(fuldt), kort);
+}
+
+/**
+ * Navnet som det skal STÅ på skærmen. Har holdet ikke en forkortelse i
+ * listen ovenfor, får man bare det navn, man kom med.
+ */
+export function visningsnavn(teamName: string): string {
+  return VISNINGS_LOOKUP.get(normalize(teamName)) ?? teamName;
+}
