@@ -4,7 +4,8 @@ import { useState, useTransition } from "react";
 import { MatchCard } from "@/components/MatchCard";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { saveTips } from "@/app/tip/actions";
-import type { Match, Tip } from "@/lib/types";
+import { useNflLive } from "@/lib/useNflLive";
+import type { Match, Sport, Tip } from "@/lib/types";
 
 type TipValue = { home: string; away: string };
 type PendingSave = {
@@ -20,10 +21,23 @@ type PendingSave = {
 export function TipRoundForm({
   matches,
   tipsByMatch,
+  sport,
 }: {
   matches: Match[];
   tipsByMatch: Record<string, Tip>;
+  sport: Sport;
 }) {
+  // Live-stillinger findes kun for NFL (se src/lib/nflResults.ts), og der er
+  // kun noget at hente, hvis en kamp i runden faktisk er sat i gang uden at
+  // være afgjort endnu. Ellers spørges der slet ikke - så koster det
+  // ingenting at have siden åben en tilfældig tirsdag.
+  const kanVaereLive =
+    sport === "nfl" &&
+    matches.some(
+      (m) => new Date(m.kickoff_at) <= new Date() && m.result_home === null
+    );
+  const live = useNflLive(kanVaereLive);
+
   const [values, setValues] = useState<Record<string, TipValue>>(() => {
     const initial: Record<string, TipValue> = {};
     for (const match of matches) {
@@ -134,6 +148,7 @@ export function TipRoundForm({
             existingTip={tipsByMatch[match.id]}
             value={values[match.id] ?? { home: "", away: "" }}
             onChange={(home, away) => handleChange(match.id, home, away)}
+            live={live[match.id]}
           />
         ))}
       </div>

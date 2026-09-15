@@ -7,6 +7,7 @@ import { danishLocalToUtcISOString } from "@/lib/time";
 import { applyMatchResult } from "@/lib/applyMatchResult";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { calculatePoints } from "@/lib/points";
+import { hentNflResultater } from "@/lib/nflResults";
 import type { Sport } from "@/lib/types";
 
 async function requireAdmin() {
@@ -208,6 +209,23 @@ export async function recalculatePoints(sport: Sport) {
 export async function recalculatePointsAction(sport: Sport) {
   const { opdaterede } = await recalculatePoints(sport);
   console.log(`[admin/kampe] Genberegnede point for ${opdaterede} tips i ${sport}.`);
+}
+
+/**
+ * Henter færdigspillede NFL-resultater fra ESPN med det samme, i stedet for
+ * at vente på den daglige automatiske kørsel (se vercel.json). Bruger præcis
+ * samme funktion som cronjobbet, så de to kan ikke komme til at opføre sig
+ * forskelligt.
+ */
+export async function fetchNflResultsAction() {
+  await requireAdmin();
+  const rapport = await hentNflResultater();
+  console.log("[admin/kampe] NFL-resultater hentet:", rapport.besked, rapport);
+
+  revalidatePath("/admin/kampe");
+  revalidatePath("/tip");
+  revalidatePath("/stilling");
+  revalidatePath("/statistik");
 }
 
 // Sletter en hel runde. Kampene i runden - og alle tips på dem - bliver

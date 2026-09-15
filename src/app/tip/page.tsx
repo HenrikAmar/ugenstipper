@@ -175,7 +175,12 @@ export default async function TipPage({
           nulstillet, når man skifter runde via fanerne ovenfor (kun
           props opdateres) - så kan felterne fejlagtigt vise forrige
           rundes (eller tomme) værdier for den nye runde. */}
-      <TipRoundForm key={activeRound.id} matches={matchList} tipsByMatch={tipsByMatch} />
+      <TipRoundForm
+        key={activeRound.id}
+        matches={matchList}
+        tipsByMatch={tipsByMatch}
+        sport={sport}
+      />
 
       <BottomNav />
     </div>

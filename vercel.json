@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/tip-reminder",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/nfl-resultater",
+      "schedule": "0 6 * * *"
     }
   ]
 }

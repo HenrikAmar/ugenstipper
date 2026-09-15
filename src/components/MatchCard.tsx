@@ -1,6 +1,7 @@
 "use client";
 
 import { TeamBadge } from "@/components/TeamBadge";
+import type { LiveKamp } from "@/lib/nflResults";
 import type { Match, Tip } from "@/lib/types";
 
 // Viser altid dansk tid (Europe/Copenhagen), uanset hvor i verden man selv sidder,
@@ -31,6 +32,7 @@ export function MatchCard({
   existingTip,
   value,
   onChange,
+  live,
 }: {
   match: Match;
   existingTip: Tip | undefined;
@@ -38,9 +40,14 @@ export function MatchCard({
   // ikke længere sin egen "gem"-knap eller egen tilstand for tippet.
   value: { home: string; away: string };
   onChange: (home: string, away: string) => void;
+  // Stillingen lige nu, hvis kampen er i gang (kun NFL - se
+  // src/lib/useNflLive.ts). Den hentes til visning og gemmes aldrig, så den
+  // kan ikke udløse point. Er kampen afgjort, vinder det officielle resultat.
+  live?: LiveKamp;
 }) {
   const locked = new Date(match.kickoff_at) <= new Date();
   const finished = match.result_home !== null && match.result_away !== null;
+  const visLive = Boolean(live) && !finished;
 
   if (locked) {
     // "Dit tip"-linjen og "kampen er i gang"-linjen skal fremstå lige så
@@ -55,13 +62,18 @@ export function MatchCard({
             <TeamBadge team={match.home_team} />
             <span className="truncate text-sm font-semibold">{match.home_team}</span>
           </div>
-          <div className="flex items-center gap-2 font-heading text-base font-bold text-text-muted">
+          <div
+            className={`flex items-center gap-2 font-heading text-base font-bold ${
+              visLive ? "text-accent" : "text-text-muted"
+            }`}
+          >
             {/* Mens kampen er i gang (ikke længere kun "låst", men heller ikke
                 afgjort endnu) skal felterne stå tomme - de må aldrig vise
-                brugerens eget tip som om det var stillingen. */}
-            <span>{finished ? match.result_home : "–"}</span>
+                brugerens eget tip som om det var stillingen. Har vi en
+                live-stilling, vises DEN i stedet for stregerne. */}
+            <span>{finished ? match.result_home : visLive ? live!.hjemmeScore : "–"}</span>
             <span className="text-[#B7BEC9]">–</span>
-            <span>{finished ? match.result_away : "–"}</span>
+            <span>{finished ? match.result_away : visLive ? live!.udeScore : "–"}</span>
           </div>
           <div className="flex min-w-0 items-center justify-end gap-2.5">
             <span className="truncate text-sm font-semibold">{match.away_team}</span>
@@ -78,6 +90,13 @@ export function MatchCard({
                 ? `Kampen er i gang · dit tip er låst (${existingTip.tip_home}-${existingTip.tip_away})`
                 : "Kampen er i gang · dit tip er låst"}
           </span>
+          {/* ESPN leverer teksten færdigformateret, fx "4:32 - 3rd", så vi
+              slipper for selv at regne quarter og spilleur ud. */}
+          {visLive && live!.status && (
+            <span className="shrink-0 rounded-full bg-accent-tint px-2 py-0.5 text-[11px] font-bold text-accent">
+              {live!.status}
+            </span>
+          )}
           {finished && existingTip?.points !== null && existingTip?.points !== undefined && (
             <span className="shrink-0 text-[11.5px] font-bold text-accent">
               +{existingTip.points} point

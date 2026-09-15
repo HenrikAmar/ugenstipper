@@ -8,6 +8,7 @@ import {
   deleteMatch,
   deleteRound,
   recalculatePointsAction,
+  fetchNflResultsAction,
 } from "./actions";
 import type { Match, Round, Sport } from "@/lib/types";
 import { utcToDanishLocalInputValue } from "@/lib/time";
@@ -206,6 +207,25 @@ export default async function AdminKampePage({
           </button>
         </form>
       </div>
+
+      {/* Kun NFL: resultaterne kan hentes automatisk fra ESPN's åbne API.
+          Superliga-resultater indtastes stadig manuelt. */}
+      {sport === "nfl" && (
+        <div className="mt-4 rounded-xl border border-border p-3.5">
+          <div className="text-[13px] font-bold">Automatiske resultater</div>
+          <p className="mt-1 text-[12.5px] leading-relaxed text-text-muted">
+            Færdigspillede NFL-kampe hentes automatisk én gang i døgnet, så søndagens
+            kampe er inde mandag morgen og mandagskampen tirsdag. Vil du ikke vente,
+            kan du hente dem nu. Kampe, du selv har tastet et resultat på, røres ikke -
+            og kampe, der stadig er i gang, hentes ikke.
+          </p>
+          <form action={fetchNflResultsAction} className="mt-2.5">
+            <button className="rounded-lg border border-accent-2 px-3 py-1.5 text-xs font-bold text-accent">
+              Hent NFL-resultater nu
+            </button>
+          </form>
+        </div>
+      )}
 
       {!activeRound && (
         <p className="mt-8 text-sm text-text-muted">
